@@ -15,7 +15,7 @@ from abjad import *
 import subprocess
 import argparse
 #from os import path
-from pythonosc import dispatcher
+from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 
 notes = {}
@@ -42,12 +42,21 @@ class NoteSC: #mejorar el nombre de la clase
     def display(self, id):
         make_ly = persist(NoteSC.container[self.id]).as_ly()
         ly_path = make_ly[0]
-        subprocess.run(['lilypond', '-dcrop', '-dpoint-and-click', '-ddelete-intermediate-files', '-dbackend=svg', '-o'+args.output, ly_path])
+        cmd = ['lilypond',
+               '-dcrop',
+               '-dpoint-and-click',
+               '-ddelete-intermediate-files',
+               '-dbackend=svg',
+               '-o' + args.output,
+               ly_path]
+        subprocess.run(cmd)
+
 
 def note_handler(unused_addr, args, eventData):
     event = eval("{" + eventData + "}")
     notes[event['id']] = NoteSC(**event)
     notes[event['id']].make()
+
 
 def literal_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}") #eval elimina la posibilidad de "\\" para imprimir "\"?
@@ -60,21 +69,37 @@ def literal_handler(unused_addr, args, eventData):
 def display_handler(unused_addr, args, id):
     notes[id].display(id)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ip", default="127.0.0.1", help="The ip to listen on")
-    parser.add_argument("--port", type=int, default=5005, help="The port to listen on")
-    #parser.add_argument("--output", default = path.expanduser('./output'), help="Location of compiled .ly")
-    parser.add_argument("--output", default = './output', help="Location of compiled .ly")
 
-    args = parser.parse_args()
-
-    dispatcher = dispatcher.Dispatcher()
+def main(args):
+    dispatcher = Dispatcher()
     dispatcher.map("/literal_event", literal_handler, "Literal")
     dispatcher.map("/note_event", note_handler, "Note")
     dispatcher.map("/note_display", display_handler, "Display")
 
     server = osc_server.ThreadingOSCUDPServer(
     (args.ip, args.port), dispatcher)
+
     print("Serving on {}".format(server.server_address))
     server.serve_forever()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--ip",
+        default="127.0.0.1",
+        help="The ip to listen on")
+    parser.add_argument("--port",
+        type=int,
+        default=5005,
+        help="The port to listen on")
+    #parser.add_argument("--output",
+    #    default=path.expanduser('./output'),
+    #    help="Location of compiled .ly")
+    parser.add_argument("--output",
+        default='./output',
+        help="Location of compiled .ly")
+
+    args = parser.parse_args()
+
+    main(args)
