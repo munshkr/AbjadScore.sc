@@ -37,6 +37,13 @@ class NoteSC: #mejorar el nombre de la clase
         else:
             note = Note(NumberedPitch.from_hertz(self.freq), Duration(self.dur))
 
+        try:
+            if len(self.articulation) > 0:
+                articulation = Articulation(self.articulation)
+                attach(articulation, note)
+        except AttributeError:
+            print("Note has no Articulation attribute")
+
         self.container[self.id].append(note)
 
     def display(self, id):

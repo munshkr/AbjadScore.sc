@@ -43,8 +43,10 @@ Pbind(
 				[\freq, \dur].do({|key| //use current freq for event note, strip Rest() when \dur is Rest
 					selectedKeys[key] = selectedKeys.use({('~'++key).interpret.value});
 				});
-				[\id].do({|key| //send as String
+				[\id, \articulation].do({|key| //send as String
+					key !? {
 					selectedKeys[key] = selectedKeys[key].asCompileString;
+					}
 				})
 			},
 
@@ -59,7 +61,9 @@ Pbind(
 				);
 
 				[\id, \literal, \position].do({|key| //send as String
+					key !? {
 					selectedKeys[key] = selectedKeys[key].asCompileString;
+					}
 			})}
 		);
 
@@ -71,7 +75,7 @@ Pbind(
 
 ////// Para el usuario
 (
-~id = \id1001;
+~id = \id1000;
 
 a = Pbind(
 	\abjad, \note,
@@ -79,6 +83,7 @@ a = Pbind(
 	\addr, n,
 	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1]),
 	\degree, Pseq([4, 4, 4, 5, 6, 7]),
+	\articulation, Prand(["accent", ">", "espressivo", "marcato", "^", "portato", "_", "staccatissimo", "!", "staccato", ".", "tenuto", "-", ""], inf)
 );
 
 a.play; //play notes normally
