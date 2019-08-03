@@ -28,12 +28,12 @@ Pbind(
 		string[0] = string[0].toUpper;
 		string; }),
 
-	\sendOSC, Pfunc({|e|
+	\finish, {|e|
 		var path = "/" ++ e.abjad ++"_event";
 		var selectedKeys = e.reject( //general cleaning
 			{
 				|item, key|
-				['server', 'delta', 'path', 'addr', 'type', 'abjad'].includes(key)
+				['server', 'delta', 'path', 'addr', 'type', 'abjad', 'finish'].includes(key)
 			}
 		);
 
@@ -43,9 +43,9 @@ Pbind(
 				[\freq, \dur].do({|key| //use current freq for event note, strip Rest() when \dur is Rest
 					selectedKeys[key] = selectedKeys.use({('~'++key).interpret.value});
 				});
-				[\id, \articulation].do({|key| //send as String
-					key !? {
-					selectedKeys[key] = selectedKeys[key].asCompileString;
+				[\id, \articulation, \fermata].do({|key| //send as String
+					selectedKeys[key] !? {
+						selectedKeys[key] = selectedKeys[key].asCompileString
 					}
 				})
 			},
@@ -62,28 +62,33 @@ Pbind(
 
 				[\id, \literal, \position].do({|key| //send as String
 					key !? {
-					selectedKeys[key] = selectedKeys[key].asCompileString;
+						selectedKeys[key] = selectedKeys[key].asCompileString;
 					}
 			})}
 		);
 
+		selectedKeys.reject({|item, key|
+			key.isNil
+		}); //clean nil keyss
+
 		e.addr.sendMsg(path, selectedKeys.asString.replace("(", "").replace(")", ""));
-		selectedKeys.asString.postln;
-	})
-);
+		(selectedKeys.asString+"\n").postln;
+});
+
 )
 
 ////// Para el usuario
 (
-~id = \id1000;
+~id = \id1056;
 
 a = Pbind(
 	\abjad, \note,
 	\id, ~id,
 	\addr, n,
-	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1]),
-	\degree, Pseq([4, 4, 4, 5, 6, 7]),
-	\articulation, Prand(["accent", ">", "espressivo", "marcato", "^", "portato", "_", "staccatissimo", "!", "staccato", ".", "tenuto", "-", ""], inf)
+	\dur, Prand([1/8, 3/8, 1/8, 1/8, 1/8, 1], 10),
+	\degree, Prand([4, 4, 4, 5, 6, 7], inf),
+	\articulation, Prand(["accent", ">", "espressivo", "marcato", "^", "portato", "_", "staccatissimo", "!", "staccato", ".", "tenuto", "-", ""], inf),
+	\fermata, Pseq(["","shortfermata", "longfermata","verylongfermata", "fermata"], inf)
 );
 
 a.play; //play notes normally

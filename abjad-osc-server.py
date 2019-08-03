@@ -44,6 +44,13 @@ class NoteSC: #mejorar el nombre de la clase
         except AttributeError:
             print("Note has no Articulation attribute")
 
+        try:
+            if len(self.fermata) > 0:
+                fermata = Fermata(command = self.fermata)
+                attach(fermata, note)
+        except AttributeError:
+            print("Note has no Fermata attribute")
+
         self.container[self.id].append(note)
 
     def display(self, id):
