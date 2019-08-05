@@ -49,10 +49,20 @@ class NoteSC: #mejorar el nombre de la clase
         except AttributeError:
             print("Note has no Fermata attribute")
 
+        try:
+            markup = Markup(self.markup, direction=self.markupDirection)
+            if len(self.format) > 0:
+                for format in self.format: #para ser consistente con la nomenclatura de Abjad, tendria que ser MarkupCommand en lugar de format
+                    string = "markup."+format+"()"
+                    markup = eval(string)
+            attach(markup, note)
+        except AttributeError:
+            print("Note has no Markup attribute")
+
         self.container[self.id].append(note)
 
     def display(self, id):
-        make_ly = persist(NoteSC.container[self.id]).as_ly()
+        make_ly = persist(NoteSC.container[self.id]).as_ly() #dudo que NoteSC.container[self.id] sea la mejor manera de llamar a aquello que se va a renderizar
         ly_path = make_ly[0]
         cmd = ['lilypond',
                '-dcrop',
@@ -63,35 +73,38 @@ class NoteSC: #mejorar el nombre de la clase
                ly_path]
         subprocess.run(cmd)
 
-
 def note_handler(unused_addr, args, eventData):
     event = eval("{" + eventData + "}")
     notes[event['id']] = NoteSC(**event)
     notes[event['id']].make()
 
-
 def literal_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}") #eval elimina la posibilidad de "\\" para imprimir "\"?
     event['literal'] = event['literal'].replace("backlash-", "\\") #hack horrible
+    id = event['id']
+    attachTo = event['attachTo']
     literal = LilyPondLiteral(event['literal'], event['position'])
-    attach(literal, notes[event['id']].container[event['id']]) #Algo en el diseno esta mal, quiero que el scope de containers sea accesible de afuera pero no se si es la manera. Ademas es igual a escribir NoteSC.container[event['id']] ?
+    if attachTo is None:
+        attach(literal, notes[id].container[id])
+    else:
+        attach(literal, notes[id].container[id][attachTo])
 
 def markup_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     event['markup'] = event['markup'].replace("backlash-", "\\") #hack horrible
-    markup = Markup(event['markup'], direction=event['direction'])
+    id = event['id']
+    attachTo = event['attachTo']
+    markup = Markup(event['markup'], direction=event['markupDirection'])
     #To-Do: handler para MarkupCommand que acepta argumentos
-
     try:
         if len(event['format']) > 0:
-            for format in event['format']: #para ser consistente con la nomenclatura de Abjad, tendr�a que ser MarkupCommand en lugar de format
+            for format in event['format']: #para ser consistente con la nomenclatura de Abjad, tendria que ser MarkupCommand en lugar de format
                 string = "markup."+format+"()"
                 markup = eval(string)
-
     except AttributeError:
         print("Event has no markup format attribute")
 
-    attach(markup, notes[event['id']].container[event['id']][0])
+    attach(markup, notes[id].container[id][attachTo])
 
 def display_handler(unused_addr, args, id):
     notes[id].display(id)
@@ -99,8 +112,9 @@ def display_handler(unused_addr, args, id):
 
 def main(args):
     dispatcher = Dispatcher()
-    dispatcher.map("/literal_event", literal_handler, "Literal")
-    dispatcher.map("/markup_event", markup_handler, "Markup")
+    #dispatcher.map("/literal_event", literal_handler, "Literal Event")
+    dispatcher.map("/literal_oneshot", literal_handler, "Literal")
+    dispatcher.map("/markup_oneshot", markup_handler, "Markup")
     dispatcher.map("/note_event", note_handler, "Note")
     dispatcher.map("/note_display", display_handler, "Display")
 

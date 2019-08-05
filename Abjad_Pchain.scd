@@ -43,7 +43,7 @@ Pbind(
 				[\freq, \dur].do({|key| //use current freq for event note, strip Rest() when \dur is Rest
 					selectedKeys[key] = selectedKeys.use({('~'++key).interpret.value});
 				});
-				[\id, \articulation, \fermata].do({|key| //send as String
+				[\id, \articulation, \fermata, \markup, \format].do({|key| //send as String
 					selectedKeys[key] !? {
 						selectedKeys[key] = selectedKeys[key].asCompileString
 					}
@@ -64,22 +64,6 @@ Pbind(
 					selectedKeys[key] !? {
 						selectedKeys[key] = selectedKeys[key].asCompileString;
 					}
-			})},
-
-			\markup, {
-				selectedKeys[\direction] ?? {selectedKeys[\direction] = 'Up'}; //set default direction. Do not send as String
-
-				selectedKeys = selectedKeys.reject( //literal event cleaning
-					{
-						|item, key|
-						['dur', 'freq', 'amp', 'rest'].includes(key)
-					}
-				);
-
-				[\id, \markup, \format].do({|key| //send as String
-					selectedKeys[key] !? {
-						selectedKeys[key] = selectedKeys[key].asCompileString;
-					};
 			})}
 		);
 
@@ -87,51 +71,66 @@ Pbind(
 			key.isNil
 		});
 
-		e.addr.sendMsg(path, selectedKeys.asString.replace("(", "").replace(")", ""));
+		//e.addr.sendMsg(path, selectedKeys.asString.replace("(", "").replace(")", ""));
+		e.addr.sendMsg(path, selectedKeys.asString.drop(1).drop(-1));
 		(selectedKeys.asString+"\n").postln;
 });
 )
 
 ////// Para el usuario
 (
-~id = \id0;
+~id = \id2001;
 
 a = Pbind(
 	\abjad, \note,
 	\id, ~id,
 	\addr, n,
-	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1], 1),
+	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1], repeats: 1),
 	\degree, Pseq([4, 4, 4, 5, 6, 7], inf),
-	\articulation, Pseq(["", "", "", "", "", 'accent'], 1),
+	\articulation, Pseq(["", "", "", "", "", 'accent'], inf),
 	\articDirection, \Down,
-	\fermata, Pseq(["", "", "", "", "", 'longfermata'], 1),
-);
-
-b = Pbind(
-	\abjad, \literal,
-	\addr, n,
-	\id, ~id,
-	\position, \after,
-	\literal, 'backlash-addlyrics { Qui- sie- ra ser un test }', //backlash- -> hack horrible
-	\dur, Pseq([1]),
-);
-
-c = Pbind(
-	\abjad, \markup,
-	\addr, n,
-	\id, ~id,
-	\direction, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
-	\markup, 'Allegro grassoso',
-
-	//debería ser \command porque abjad.MarkupCommand ?
-	\format, [ 'italic', 'sans', 'box'], //[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ] //Advertencia: no son todos combinables. Ej. 'italics' mata 'caps'
-	\dur, Pseq([1]),
+	\fermata, Pseq(["", "", "", "", "", 'longfermata'], inf),
+	\markupDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
+	\markup, Pseq(['Allegro', 'sfz', 'sffz', 'flurry'], inf),
+	\format, Pseq([ ['italic'], ['dynamic', 'sans'], ['dynamic', 'box'], ['bold']], inf), //debería ser \command porque abjad.MarkupCommand ?
+	//estaría bueno que no tenga que ser enviado como array cuando contiene solo un elemento (ver en python)
 );
 )
+
+(~abjadPattern <> a).play;
+
+~render.value(~id);
+
+//oneshot msgs
+//attach to container[x] element
+(
+~markup = {
+	|id, markup, markupDirection = 'Up', format="", attachTo = 0, ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'markup': " ++ markup.asCompileString
+	++ ", 'markupDirection': " ++ markupDirection
+	++ ", 'format': " ++ format.asCompileString
+	++ ", 'attachTo': " ++ attachTo;
+	NetAddr(ip, port).sendMsg('/markup_oneshot', msg);
+}
+//[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ]
+//debería ser \command en lugar de \format porque abjad.MarkupCommand ?
+//Advertencia: no son todos combinables. Ej. 'italic' mata 'caps'
+)
+
+~markup.(~id, 'Adagio', 'Down', ['italic']);
+~render.value(~id);
 
 (
-(~abjadPattern <> a).play;
-(~abjadPattern <> b).play;
-(~abjadPattern <> c).play;
+~literal = {
+	|id, literal, position = \after, attachTo = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'literal': " ++ literal.asCompileString
+	++ ", 'position': " ++ position.asCompileString
+	++ ", 'attachTo': " ++ attachTo; //REVISAR: Creo que corre por cuenta propia chequear cuál literal se puede attachear a cuál leaf para que el código de lilypond compile. Si attachTo = 'None' entonces attachea a container[id]
+	NetAddr(ip, port).sendMsg('/literal_oneshot', msg);
+}
 )
+
+~literal.(~id, 'backlash-addlyrics { qui- sie- ra ser un test }', \after);
 ~render.value(~id);
