@@ -21,7 +21,7 @@ var outputPath = currentFolder ++ "output";
 (
 ~abjadPattern =
 Pbind(
-	\delta, 0.01,
+	\delta, 0,
 	\amp, 0,
 	\rest, Pfunc({|e|
 		var string = e.isRest.asString;
@@ -56,55 +56,82 @@ Pbind(
 				selectedKeys = selectedKeys.reject( //literal event cleaning
 					{
 						|item, key|
-						['dur', 'freq', 'amp'].includes(key)
+						['dur', 'freq', 'amp', 'rest'].includes(key)
 					}
 				);
 
 				[\id, \literal, \position].do({|key| //send as String
-					key !? {
+					selectedKeys[key] !? {
 						selectedKeys[key] = selectedKeys[key].asCompileString;
 					}
+			})},
+
+			\markup, {
+				selectedKeys[\direction] ?? {selectedKeys[\direction] = 'Up'}; //set default direction. Do not send as String
+
+				selectedKeys = selectedKeys.reject( //literal event cleaning
+					{
+						|item, key|
+						['dur', 'freq', 'amp', 'rest'].includes(key)
+					}
+				);
+
+				[\id, \markup, \format].do({|key| //send as String
+					selectedKeys[key] !? {
+						selectedKeys[key] = selectedKeys[key].asCompileString;
+					};
 			})}
 		);
 
 		selectedKeys.reject({|item, key|
 			key.isNil
-		}); //clean nil keyss
+		});
 
 		e.addr.sendMsg(path, selectedKeys.asString.replace("(", "").replace(")", ""));
 		(selectedKeys.asString+"\n").postln;
 });
-
 )
 
 ////// Para el usuario
 (
-~id = \id1056;
+~id = \id0;
 
 a = Pbind(
 	\abjad, \note,
 	\id, ~id,
 	\addr, n,
-	\dur, Prand([1/8, 3/8, 1/8, 1/8, 1/8, 1], 10),
-	\degree, Prand([4, 4, 4, 5, 6, 7], inf),
-	\articulation, Prand(["accent", ">", "espressivo", "marcato", "^", "portato", "_", "staccatissimo", "!", "staccato", ".", "tenuto", "-", ""], inf),
-	\fermata, Pseq(["","shortfermata", "longfermata","verylongfermata", "fermata"], inf)
+	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1], 1),
+	\degree, Pseq([4, 4, 4, 5, 6, 7], inf),
+	\articulation, Pseq(["", "", "", "", "", 'accent'], 1),
+	\articDirection, \Down,
+	\fermata, Pseq(["", "", "", "", "", 'longfermata'], 1),
 );
-
-a.play; //play notes normally
-(~abjadPattern <> a).play; //play notes with \delta 0.01 for Abjad
 
 b = Pbind(
 	\abjad, \literal,
 	\addr, n,
 	\id, ~id,
 	\position, \after,
-	\literal, 'backlash-addlyrics { Qui -- sie -- ra ser un test }', //backlash- -> hack horrible
+	\literal, 'backlash-addlyrics { Qui- sie- ra ser un test }', //backlash- -> hack horrible
 	\dur, Pseq([1]),
-	\amp, 0,
 );
 
-(~abjadPattern <> b).play;
+c = Pbind(
+	\abjad, \markup,
+	\addr, n,
+	\id, ~id,
+	\direction, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
+	\markup, 'Allegro grassoso',
+
+	//debería ser \command porque abjad.MarkupCommand ?
+	\format, [ 'italic', 'sans', 'box'], //[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ] //Advertencia: no son todos combinables. Ej. 'italics' mata 'caps'
+	\dur, Pseq([1]),
+);
 )
 
+(
+(~abjadPattern <> a).play;
+(~abjadPattern <> b).play;
+(~abjadPattern <> c).play;
+)
 ~render.value(~id);

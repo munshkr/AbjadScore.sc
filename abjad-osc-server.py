@@ -14,7 +14,6 @@ Default output path = './output'
 from abjad import *
 import subprocess
 import argparse
-#from os import path
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 
@@ -22,14 +21,13 @@ notes = {}
 
 class NoteSC: #mejorar el nombre de la clase
     container = {}
-    #staff = {}
+    #staff = {} ?
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
         if self.id not in self.container.keys():
             self.container[self.id] = Container()
-            #self.staff[self.id] = Staff(self.container[self.id]) #Hacer un Staff para meter los containers genericos??
 
     def make(self):
         if self.rest:
@@ -39,7 +37,7 @@ class NoteSC: #mejorar el nombre de la clase
 
         try:
             if len(self.articulation) > 0:
-                articulation = Articulation(self.articulation)
+                articulation = Articulation(self.articulation, direction=self.articDirection)
                 attach(articulation, note)
         except AttributeError:
             print("Note has no Articulation attribute")
@@ -75,10 +73,25 @@ def note_handler(unused_addr, args, eventData):
 def literal_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}") #eval elimina la posibilidad de "\\" para imprimir "\"?
     event['literal'] = event['literal'].replace("backlash-", "\\") #hack horrible
-    #lyrics = LilyPondLiteral(r'\addlyrics {' + event['lyrics'] + '}', 'after') #Manejando LilyPondLiteral en server, mmm... no es buena idea, tendria que duplicar el codigo por cada posible LilyPondLiteral
-    literal = LilyPondLiteral(event['literal'], event['position']) #Manejando LilyPondLiteral en client
+    literal = LilyPondLiteral(event['literal'], event['position'])
     attach(literal, notes[event['id']].container[event['id']]) #Algo en el diseno esta mal, quiero que el scope de containers sea accesible de afuera pero no se si es la manera. Ademas es igual a escribir NoteSC.container[event['id']] ?
 
+def markup_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    event['markup'] = event['markup'].replace("backlash-", "\\") #hack horrible
+    markup = Markup(event['markup'], direction=event['direction'])
+    #To-Do: handler para MarkupCommand que acepta argumentos
+
+    try:
+        if len(event['format']) > 0:
+            for format in event['format']: #para ser consistente con la nomenclatura de Abjad, tendr�a que ser MarkupCommand en lugar de format
+                string = "markup."+format+"()"
+                markup = eval(string)
+
+    except AttributeError:
+        print("Event has no markup format attribute")
+
+    attach(markup, notes[event['id']].container[event['id']][0])
 
 def display_handler(unused_addr, args, id):
     notes[id].display(id)
@@ -87,6 +100,7 @@ def display_handler(unused_addr, args, id):
 def main(args):
     dispatcher = Dispatcher()
     dispatcher.map("/literal_event", literal_handler, "Literal")
+    dispatcher.map("/markup_event", markup_handler, "Markup")
     dispatcher.map("/note_event", note_handler, "Note")
     dispatcher.map("/note_display", display_handler, "Display")
 
@@ -107,9 +121,6 @@ if __name__ == "__main__":
         type=int,
         default=5005,
         help="The port to listen on")
-    #parser.add_argument("--output",
-    #    default=path.expanduser('./output'),
-    #    help="Location of compiled .ly")
     parser.add_argument("--output",
         default='./output',
         help="Location of compiled .ly")
