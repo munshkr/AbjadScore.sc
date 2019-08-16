@@ -1,3 +1,5 @@
+s.boot
+s.quit
 (
 n = NetAddr("127.0.0.1", 5005);
 
@@ -43,7 +45,7 @@ Pbind(
 				[\freq, \dur].do({|key| //use current freq for event note, strip Rest() when \dur is Rest
 					selectedKeys[key] = selectedKeys.use({('~'++key).interpret.value});
 				});
-				[\id, \articulation, \fermata, \markup, \format].do({|key| //send as String
+				[\id, \articulation, \fermata, \markup, \markupCommand, \voice, \octave].do({|key| //send as String
 					selectedKeys[key] !? {
 						selectedKeys[key] = selectedKeys[key].asCompileString
 					}
@@ -56,7 +58,7 @@ Pbind(
 				selectedKeys = selectedKeys.reject( //literal event cleaning
 					{
 						|item, key|
-						['dur', 'freq', 'amp', 'rest'].includes(key)
+						['Dur', 'freq', 'amp', 'rest'].includes(key)
 					}
 				);
 
@@ -71,7 +73,6 @@ Pbind(
 			key.isNil
 		});
 
-		//e.addr.sendMsg(path, selectedKeys.asString.replace("(", "").replace(")", ""));
 		e.addr.sendMsg(path, selectedKeys.asString.drop(1).drop(-1));
 		(selectedKeys.asString+"\n").postln;
 });
@@ -79,26 +80,28 @@ Pbind(
 
 ////// Para el usuario
 (
-~id = \id2001;
+~id = \id105;
 
 a = Pbind(
 	\abjad, \note,
+	\voice, 'upper',
 	\id, ~id,
 	\addr, n,
-	\dur, Pseq([1/8, 3/8, 1/8, 1/8, 1/8, 1], repeats: 1),
+	\dur, Pseq([Pn(1/12, 6), Pn(1/10, 5), 1/3, 2/3, Pn(1/8, 4) ], repeats: 1),
+	\octave, 4,
 	\degree, Pseq([4, 4, 4, 5, 6, 7], inf),
 	\articulation, Pseq(["", "", "", "", "", 'accent'], inf),
 	\articDirection, \Down,
 	\fermata, Pseq(["", "", "", "", "", 'longfermata'], inf),
 	\markupDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
 	\markup, Pseq(['Allegro', 'sfz', 'sffz', 'flurry'], inf),
-	\format, Pseq([ ['italic'], ['dynamic', 'sans'], ['dynamic', 'box'], ['bold']], inf), //debería ser \command porque abjad.MarkupCommand ?
+	\markupCommand, Pseq([ ['italic'], ['dynamic', 'sans'], ['dynamic', 'box'], ['bold']],inf),
 	//estaría bueno que no tenga que ser enviado como array cuando contiene solo un elemento (ver en python)
+	//REVISAR: Cómo hacer para enviar un markup vacío??? "" -> genera un rest event :-(
 );
 )
 
 (~abjadPattern <> a).play;
-
 ~render.value(~id);
 
 //oneshot msgs
@@ -109,12 +112,11 @@ a = Pbind(
 	var msg = "'id': " ++ id.asCompileString
 	++ ", 'markup': " ++ markup.asCompileString
 	++ ", 'markupDirection': " ++ markupDirection
-	++ ", 'format': " ++ format.asCompileString
+	++ ", 'markupCommand': " ++ markupCommand.asCompileString
 	++ ", 'attachTo': " ++ attachTo;
 	NetAddr(ip, port).sendMsg('/markup_oneshot', msg);
 }
 //[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ]
-//debería ser \command en lugar de \format porque abjad.MarkupCommand ?
 //Advertencia: no son todos combinables. Ej. 'italic' mata 'caps'
 )
 

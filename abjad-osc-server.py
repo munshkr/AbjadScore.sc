@@ -19,50 +19,72 @@ from pythonosc import osc_server
 
 notes = {}
 
-class NoteSC: #mejorar el nombre de la clase
+clef = Clef('bass')
+
+class LeafGenerator:
     container = {}
-    #staff = {} ?
+    voices = {}
+    #voices = { 'id1000' : {'upper' : Voice() ,'lower' : Voice()}, 'id1001' : {'upper' : Voice()} }
+
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
         if self.id not in self.container.keys():
-            self.container[self.id] = Container()
+            self.container[self.id] = Measure()
+
+        if self.id not in self.voices.keys():
+            self.voices[self.id] = { self.voice : Voice() }
+
+        if self.voice not in self.voices[self.id].keys():
+            self.voices[self.id]= { self.voice : Voice() }
 
     def make(self):
         if self.rest:
-            note = Rest(Duration(self.dur))
+            fraction = Fraction(self.dur).limit_denominator(40)
+            duration = Duration(fraction)
+            pitch = None
+            leaves = LeafMaker()(pitch, duration)
         else:
-            note = Note(NumberedPitch.from_hertz(self.freq), Duration(self.dur))
+            pitch = NumberedPitch.from_hertz(self.freq)
+            fraction = Fraction(self.dur).limit_denominator(40)
+            duration = Duration(fraction)
+            leaves = LeafMaker()(pitch, duration)
 
-        try:
-            if len(self.articulation) > 0:
-                articulation = Articulation(self.articulation, direction=self.articDirection)
-                attach(articulation, note)
-        except AttributeError:
-            print("Note has no Articulation attribute")
+            try:
+                if len(self.articulation) > 0:
+                    articulation = Articulation(self.articulation, direction=self.articDirection)
+                    for leaf in abjad.iterate(leaves).leaves():
+                        attach(articulation, leaf)
+            except AttributeError:
+                print("Note has no Articulation attribute")
 
-        try:
-            if len(self.fermata) > 0:
-                fermata = Fermata(command = self.fermata)
-                attach(fermata, note)
-        except AttributeError:
-            print("Note has no Fermata attribute")
+            try:
+                if len(self.fermata) > 0:
+                    fermata = Fermata(command = self.fermata)
+                    for leaf in abjad.iterate(leaves).leaves():
+                        attach(fermata, leaf)
+            except AttributeError:
+                print("Note has no Fermata attribute")
 
-        try:
-            markup = Markup(self.markup, direction=self.markupDirection)
-            if len(self.format) > 0:
-                for format in self.format: #para ser consistente con la nomenclatura de Abjad, tendria que ser MarkupCommand en lugar de format
-                    string = "markup."+format+"()"
-                    markup = eval(string)
-            attach(markup, note)
-        except AttributeError:
-            print("Note has no Markup attribute")
+            try:
+                markup = Markup(self.markup, direction=self.markupDirection)
+                if len(self.markupCommand) > 0:
+                    for command in self.markupCommand:
+                        string = "markup."+command+"()"
+                        markup = eval(string)
+                for leaf in abjad.iterate(leaves).leaves():
+                    attach(markup, leaf)
+            except AttributeError:
+                print("Note has no Markup attribute")
 
-        self.container[self.id].append(note)
+        self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
+        self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Measure
+        attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
+        self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
 
     def display(self, id):
-        make_ly = persist(NoteSC.container[self.id]).as_ly() #dudo que NoteSC.container[self.id] sea la mejor manera de llamar a aquello que se va a renderizar
+        make_ly = persist(LeafGenerator.container[self.id]).as_ly()
         ly_path = make_ly[0]
         cmd = ['lilypond',
                '-dcrop',
@@ -75,7 +97,7 @@ class NoteSC: #mejorar el nombre de la clase
 
 def note_handler(unused_addr, args, eventData):
     event = eval("{" + eventData + "}")
-    notes[event['id']] = NoteSC(**event)
+    notes[event['id']] = LeafGenerator(**event)
     notes[event['id']].make()
 
 def literal_handler(unused_addr, args, eventData):
@@ -97,9 +119,9 @@ def markup_handler(unused_addr, args, eventData):
     markup = Markup(event['markup'], direction=event['markupDirection'])
     #To-Do: handler para MarkupCommand que acepta argumentos
     try:
-        if len(event['format']) > 0:
-            for format in event['format']: #para ser consistente con la nomenclatura de Abjad, tendria que ser MarkupCommand en lugar de format
-                string = "markup."+format+"()"
+        if len(event['markupCommand']) > 0:
+            for command in event['markupCommand']:
+                string = "markup."+command+"()"
                 markup = eval(string)
     except AttributeError:
         print("Event has no markup format attribute")
@@ -112,7 +134,6 @@ def display_handler(unused_addr, args, id):
 
 def main(args):
     dispatcher = Dispatcher()
-    #dispatcher.map("/literal_event", literal_handler, "Literal Event")
     dispatcher.map("/literal_oneshot", literal_handler, "Literal")
     dispatcher.map("/markup_oneshot", markup_handler, "Markup")
     dispatcher.map("/note_event", note_handler, "Note")
