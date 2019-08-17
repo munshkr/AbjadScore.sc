@@ -58,6 +58,15 @@ class LeafGenerator:
                         attach(articulation, leaf)
             except AttributeError:
                 print("Note has no Articulation attribute")
+            
+            try:
+                if len(self.dynamic) > 0:
+                    dynamic = Dynamic(self.dynamic, direction=self.dynamicDirection)
+                    for leaf in abjad.iterate(leaves).leaves():
+                        attach(dynamic, leaf)
+            except AttributeError:
+                print("Note has no Dynamic attribute")
+
 
             try:
                 if len(self.fermata) > 0:
@@ -84,7 +93,12 @@ class LeafGenerator:
         self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
 
     def display(self, id):
-        make_ly = persist(LeafGenerator.container[self.id]).as_ly()
+        includes = ['/home/yako/.virtualenvs/abjad/lib/python3.7/site-packages/abjad/docs/source/_stylesheets/default.ily']
+        lilypond_file = LilyPondFile.new(
+               music=LeafGenerator.container[self.id],
+               includes=includes
+        )
+        make_ly = persist(lilypond_file).as_ly()
         ly_path = make_ly[0]
         cmd = ['lilypond',
                '-dcrop',
@@ -111,6 +125,32 @@ def literal_handler(unused_addr, args, eventData):
     else:
         attach(literal, notes[id].container[id][attachTo])
 
+def dynamic_handler(unused_addr, args, eventData):
+    #name='f', *, command=None, direction=None, format_hairpin_stop=None, hide=None, leak=None, name_is_textual=None, ordinal=None, sforzando=None, tweaks=None
+    event = eval("{ " + eventData + "}")
+    print(event)
+    id = event['id']
+    if event['command'] == 'None':
+        event['command'] = None
+    else:
+        event['command'] = event['command'].replace("backlash-", "\\") #hack horrible
+
+    dynamic = Dynamic(event['dynamic'], command = event['command'], direction = event['direction'], name_is_textual=event['name_is_textual'])
+    detach(DynamicTrend, select(notes[id].container[id]).leaves()[event['attachTo']])
+    detach(Dynamic, select(notes[id].container[id]).leaves()[event['attachTo']])
+    attach(dynamic, select(notes[id].container[id]).leaves()[event['attachTo']]
+)
+
+def dynamicTrend_handler(unused_addr, args, eventData):
+    # shape='<', *, left_broken=None, tweaks=None
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    dynamicTrend = DynamicTrend(shape=event['shape'], left_broken=event['left_broken'], tweaks=event['tweaks'])
+    #DynamicTrend convive con Dynamic en el mismo leaf, pero puede eliminarlo on 'left_broken'
+    detach(DynamicTrend, select(notes[id].container[id]).leaves()[event['attachTo']])
+    attach(dynamicTrend, select(notes[id].container[id]).leaves()[event['attachTo']]
+)
+
 def markup_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     event['markup'] = event['markup'].replace("backlash-", "\\") #hack horrible
@@ -134,6 +174,8 @@ def display_handler(unused_addr, args, id):
 
 def main(args):
     dispatcher = Dispatcher()
+    dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")
+    dispatcher.map("/dynamicTrend_oneshot", dynamicTrend_handler, "DynamicTrend")
     dispatcher.map("/literal_oneshot", literal_handler, "Literal")
     dispatcher.map("/markup_oneshot", markup_handler, "Markup")
     dispatcher.map("/note_event", note_handler, "Note")
