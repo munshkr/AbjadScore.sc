@@ -1,13 +1,3 @@
-s.boot
-s.quit
-(
-n = NetAddr("127.0.0.1", 5005);
-
-~render = {
-	|id = "id0", ip = "127.0.0.1", port = 5005|
-	NetAddr(ip, port).sendMsg("/note_display", id);
-};
-)
 /*
 (
 var currentFolder = PathName(thisProcess.nowExecutingPath).parentPath;
@@ -20,14 +10,25 @@ var outputPath = currentFolder ++ "output";
 //si queda zombie un server osc de python tira error silencioso (address already in use)
 //mientras mejor debuggear corriendo el script de python desde la terminal
 */
+
+s.boot
+s.quit
+
+(
+n = NetAddr("127.0.0.1", 5005);
+
+~render = {
+	|id = "id0", ip = "127.0.0.1", port = 5005|
+	NetAddr(ip, port).sendMsg("/display", id);
+};
+)
 (
 ~abjadPattern =
 Pbind(
 	\delta, 0,
 
 	\dynamic, Pfunc({|e|
-	//e[\amp].class.postln;
-		if (e[\amp].class != {}.class,
+		if (e[\amp].class != {}.class, //if \amp is explicited in parent event
 		{
 			if (e[\amp] != 0,
 				{
@@ -106,10 +107,89 @@ Pbind(
 		(selectedKeys.asString+"\n").postln;
 });
 )
+//oneshot msgs functions
+//attach to container[x] element
+(
+~dynamic = {
+	|id, dynamic, index = 0, command = 'None', direction = 'Down', name_is_textual = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
+//	name='f', command=None, direction=None, format_hairpin_stop=None, hide=None, leak=None, name_is_textual=None, ordinal=None, sforzando=None, tweaks=None
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'dynamic': " ++ dynamic.asCompileString
+	++ ", 'command': " ++ command.asCompileString
+	++ ", 'direction': " ++ direction
+	++ ", 'name_is_textual': " ++ name_is_textual
+	++ ", 'tweaks': " ++ tweaks
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/dynamic_oneshot', msg);
+};
+//'ppppp','pppp','ppp','pp','p','mp','mf','f','ff','fff','ffff'
+
+~dynamicTrend = {
+	|id, shape, index = 0,  left_broken = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'shape': " ++ shape.asCompileString
+	++ ", 'left_broken': " ++ left_broken
+	++ ", 'tweaks': " ++ tweaks
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/dynamicTrend_oneshot', msg);
+};
+//'<' 'o<' '<|' 'o<|' '>' '>o' '|>' '|>o' '--'
+
+~markup = {
+	|id, markup, direction = 'Up', markupCommand="", index = 0, tweaks = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'markup': " ++ markup.asCompileString
+	++ ", 'direction': " ++ direction
+	++ ", 'markupCommand': " ++ markupCommand.asCompileString
+	++ ", 'tweaks': " ++ tweaks
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/markup_oneshot', msg);
+};
+//[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ]
+//Advertencia: no son todos combinables. Ej. 'italic' mata 'caps'
+// 'dynamic' choca con la tipografía de Dynamic() en lilypond (parece que si la usas en Dynamic() despues Markup('dynamic') no encuentra la tipografía)
+
+~articulation = {
+	|id, articulation, index = 0, direction = 'Up', tweaks = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'articulation': " ++ articulation.asCompileString
+	++ ", 'direction': " ++ direction
+	++ ", 'tweaks': " ++ tweaks
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/articulation_oneshot', msg);
+};
+
+~literal = {
+	|id, literal, position = \after, index = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'literal': " ++ literal.asCompileString
+	++ ", 'position': " ++ position.asCompileString
+	++ ", 'tweaks': " ++ tweaks
+	++ ", 'index': " ++ index; //REVISAR: Creo que corre por cuenta propia chequear cuál literal se puede attachear a cuál leaf para que el código de lilypond compile. Si index = 'None' entonces attachea a container[id]
+	NetAddr(ip, port).sendMsg('/literal_oneshot', msg);
+};
+
+~detach = {
+	|id, attachment, index = 0, ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'attachment': " ++ attachment
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/detach', msg);
+};
+
+~remove = {
+	|id, index = 0, ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/remove', msg);
+};
+
+)
+
 
 ////// Para el usuario
 (
-~id = \id1021;
+~id = \id1025;
 
 a = Pbind(
 	\abjad, \note,
@@ -119,13 +199,13 @@ a = Pbind(
 	//\dynamicDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
 	//\amp, 0,
 	//\amp, Pseries(0.001, 0.1, inf),
-	\dur, Pseries(16, -1, 16)/16,
-	//\dur, Pseq([Pn(1/16,4),Pn(1/6, 3), Pn(1/8, 4) ], repeats: 1),
+	//\dur, Pseries(16, -1, 16)/16,
+	\dur, Pseq([Pn(1/16,4),Pn(1/6, 3), Pn(1/8, 4) ], repeats: 1),
 	//\dur, Pseq([Pn(1/12, 6), Pn(1/10, 5), 1/3, 2/3, Pn(1/8, 4) ], repeats: 1),
-	\octave, 3,
-	\root, -3,
-	\mtranspose, Pxrand([-1,1,0], inf),
-	\scale, Scale.minorPentatonic,
+	\octave, 4,
+	\root, 3,
+	\mtranspose, Pxrand([-2,2,0], inf),
+	\scale, Scale.chromatic,
 	\degree, Pseries(0, 1, inf),
 	//\articulation, Pseq(['.', "", "", "", 'accent'], inf),
 	//\articDirection, \Up,
@@ -139,75 +219,38 @@ a = Pbind(
 )
 
 (
-(~abjadPattern <> a).play;
-)
-(
-~render.value(~id);
-)
-//oneshot msgs
-//attach to container[x] element
-(
-~dynamic = {
-	|id, dynamic, attachTo = 0, command = 'None', direction = 'Down', name_is_textual = 'None', ip = "127.0.0.1", port = 5005|
-//	name='f', command=None, direction=None, format_hairpin_stop=None, hide=None, leak=None, name_is_textual=None, ordinal=None, sforzando=None, tweaks=None
-	var msg = "'id': " ++ id.asCompileString
-	++ ", 'dynamic': " ++ dynamic.asCompileString
-	++ ", 'command': " ++ command.asCompileString
-	++ ", 'direction': " ++ direction
-	++ ", 'name_is_textual': " ++ name_is_textual
-	++ ", 'attachTo': " ++ attachTo;
-	NetAddr(ip, port).sendMsg('/dynamic_oneshot', msg);
-}
-//'ppppp','pppp','ppp','pp','p','mp','mf','f','ff','fff','ffff'
+	(~abjadPattern <> a).play;
+	~render.value(~id);
 )
 
-~dynamic.(~id, 'f', 4);
+//oneshot msgs
+
+
+~dynamic.(~id, 'f', 0);
 ~dynamic.(~id, 'p', -1);
 ~dynamic.(~id, 'niente', -1 , 'backlash-!');
 ~render.value(~id);
-(
-~dynamicTrend = {
-	|id, shape, attachTo = 0,  left_broken = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
-	var msg = "'id': " ++ id.asCompileString
-	++ ", 'shape': " ++ shape.asCompileString
-	++ ", 'left_broken': " ++ left_broken
-	++ ", 'tweaks': " ++ tweaks
-	++ ", 'attachTo': " ++ attachTo;
-	NetAddr(ip, port).sendMsg('/dynamicTrend_oneshot', msg);
-}
-//'<' 'o<' '<|' 'o<|' '>' '>o' '|>' '|>o' '--'
-)
-
 //~dynamicTrend.(~id, '|>o', 0 , tweaks: "[('color', 'blue')]" );
-~dynamicTrend.(~id, '|>o', 0);
+~dynamicTrend.(~id, '|>o', 3);
 ~render.value(~id);
-
-~markup = {
-	|id, markup, direction = 'Up', markupCommand="", attachTo = 0, ip = "127.0.0.1", port = 5005|
-	var msg = "'id': " ++ id.asCompileString
-	++ ", 'markup': " ++ markup.asCompileString
-	++ ", 'direction': " ++ direction
-	++ ", 'markupCommand': " ++ markupCommand.asCompileString
-	++ ", 'attachTo': " ++ attachTo;
-	NetAddr(ip, port).sendMsg('/markup_oneshot', msg);
-}
-//[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ]
-//Advertencia: no son todos combinables. Ej. 'italic' mata 'caps'
-// 'dynamic' choca con la tipografía de Dynamic() en lilypond (parece que si la usas en Dynamic() despues Markup('dynamic') no encuentra la tipografía)
-)
 
 ~markup.(~id, 'Adagio', 'Down', ['italic']);
+~markup.(~id, "piu mosso", 'Up',["italic"], 2);
 ~render.value(~id);
-(
-~literal = {
-	|id, literal, position = \after, attachTo = 'None', ip = "127.0.0.1", port = 5005|
-	var msg = "'id': " ++ id.asCompileString
-	++ ", 'literal': " ++ literal.asCompileString
-	++ ", 'position': " ++ position.asCompileString
-	++ ", 'attachTo': " ++ attachTo; //REVISAR: Creo que corre por cuenta propia chequear cuál literal se puede attachear a cuál leaf para que el código de lilypond compile. Si attachTo = 'None' entonces attachea a container[id]
-	NetAddr(ip, port).sendMsg('/literal_oneshot', msg);
-}
-)
 
-~literal.(~id, 'backlash-addlyrics { qui- sie- ra ser un test }', \after);
+~articulation.(~id, 'accent', 0)
+~render.value(~id);
+
+~literal.(~id, 'backlash-addlyrics { qui- sie- ra ser un test }', \after, 0);
+~render.value(~id);
+
+~detach.(~id, 'Articulation', 0);
+~detach.(~id, 'Markup', 2);
+~detach.(~id, 'Dynamic', -1);
+~detach.(~id, 'DynamicTrend', 3);
+~render.value(~id);
+
+~remove.(~id, 0);
+~remove.(~id, 2);
+~remove.(~id, -1);
 ~render.value(~id);
