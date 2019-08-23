@@ -159,6 +159,15 @@ Pbind(
 	NetAddr(ip, port).sendMsg('/articulation_oneshot', msg);
 };
 
+~slur = {
+	|id, slice, voice = 'upper', direction = "None", ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'direction': " ++ direction
+	++ ", 'voice': " ++ voice.asCompileString
+	++ ", 'slice': " ++ slice.asCompileString;
+	NetAddr(ip, port).sendMsg('/slur_oneshot', msg);
+};
+
 ~literal = {
 	|id, literal, position = \after, index = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
 	var msg = "'id': " ++ id.asCompileString
@@ -189,7 +198,7 @@ Pbind(
 
 ////// Para el usuario
 (
-~id = \id1025;
+~id = \id1004;
 
 a = Pbind(
 	\abjad, \note,
@@ -200,16 +209,16 @@ a = Pbind(
 	//\amp, 0,
 	//\amp, Pseries(0.001, 0.1, inf),
 	//\dur, Pseries(16, -1, 16)/16,
-	\dur, Pseq([Pn(1/16,4),Pn(1/6, 3), Pn(1/8, 4) ], repeats: 1),
+	\dur, Pseq([Pn(1/12,6),1/4,Pn(1/6, 3),1/4, Pn(1/16, 4) ], repeats: 1),
 	//\dur, Pseq([Pn(1/12, 6), Pn(1/10, 5), 1/3, 2/3, Pn(1/8, 4) ], repeats: 1),
 	\octave, 4,
 	\root, 3,
 	\mtranspose, Pxrand([-2,2,0], inf),
 	\scale, Scale.chromatic,
 	\degree, Pseries(0, 1, inf),
-	//\articulation, Pseq(['.', "", "", "", 'accent'], inf),
-	//\articDirection, \Up,
-	//\fermata, Pseq(["", "", "", "", "", 'longfermata'], inf),
+	\articulation, Pseq(['.', "", "", "", 'accent'], inf),
+	\articDirection, \Up,
+	\fermata, Pseq(["", "", "", "", "", 'fermata'], inf),
 	//\markupDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
 	//\markup, "None",
 	//\markupCommand, Pseq([ [""],[""],['italic'], ['box', 'sans'], ['tiny', 'box'], ['bold'] ],inf),
@@ -218,14 +227,12 @@ a = Pbind(
 );
 )
 
-(
-	(~abjadPattern <> a).play;
-	~render.value(~id);
-)
+(~abjadPattern <> a).play;
+~render.value(~id);
 
 //oneshot msgs
 
-
+~slur.(~id, "0,9"); // si un leaf ya tiene Slur, no sobreescribe y no tiene ningún efecto. Para sobreescribir hay que detachear antes. Tendría que ser consistente y pensar cuándo las sobreescrituras se hacen con ~detach desde el cliente y cuando están incorporadas en el server
 ~dynamic.(~id, 'f', 0);
 ~dynamic.(~id, 'p', -1);
 ~dynamic.(~id, 'niente', -1 , 'backlash-!');
@@ -248,6 +255,7 @@ a = Pbind(
 ~detach.(~id, 'Markup', 2);
 ~detach.(~id, 'Dynamic', -1);
 ~detach.(~id, 'DynamicTrend', 3);
+~detach.(~id, 'Slur', 0);
 ~render.value(~id);
 
 ~remove.(~id, 0);

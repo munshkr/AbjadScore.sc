@@ -5,6 +5,7 @@ Abjad & OSC server
 Requiere:
 Lilypond >= 2.19??
 Abjad
+Lilypond custom stylesheets from Abjad '/docs/source/_stylesheets/default.ily'
 
 Default ip: 127.0.0.1
 Default port: 5005
@@ -17,7 +18,7 @@ import argparse
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 
-notes = {} #store {'id' : [generated leaves]}
+notes = {} #store {'id' : [generated leaves]} //reemplazar notes[id] por LeafGenerator.container[id] ?
 
 clef = Clef('bass')
 
@@ -39,6 +40,23 @@ class LeafGenerator:
         if self.voice not in self.voices[self.id].keys():
             self.voices[self.id]= { self.voice : Voice(name = self.voice) }
 
+    def add_leaf_to_voice(self, leaf, voice):
+        if len(voice) > 0:
+            lastLeaf = voice[-1]
+            if type(leaf[0]) is type(Tuplet()):
+                if type(lastLeaf) is type(leaf[0]):
+                    if leaf[0].multiplier == lastLeaf.multiplier:
+                        lastLeaf.extend(leaf[0])
+                    else:
+                        voice.append(leaf)
+                else:
+                        voice.append(leaf)
+            else:
+                voice.append(leaf)
+        else:
+            voice.append(leaf)
+
+
     def make(self):
         if self.rest:
             fraction = Fraction(self.dur).limit_denominator(40)
@@ -51,7 +69,6 @@ class LeafGenerator:
             duration = Duration(fraction)
             leaves = LeafMaker()(pitch, duration)
             #LeafMaker(decrease_monotonic=True, forbidden_duration=None, metrical_hierarchy=None, skips_instead_of_rests=False, repeat_ties=False, use_multimeasure_rests=False)
-
             try:
                 if len(self.articulation) > 0:
                     articulation = Articulation(
@@ -61,7 +78,8 @@ class LeafGenerator:
                     for leaf in abjad.iterate(leaves).leaves():
                         attach(articulation, leaf)
             except AttributeError:
-                print("Note has no Articulation attribute")
+                #print("Note has no Articulation attribute")
+                None
 
             try:
                 if len(self.dynamic) > 0:
@@ -72,7 +90,8 @@ class LeafGenerator:
                     for leaf in abjad.iterate(leaves).leaves():
                         attach(dynamic, leaf)
             except AttributeError:
-                print("Note has no Dynamic attribute")
+                #print("Note has no Dynamic attribute")
+                None
 
             try:
                 if len(self.fermata) > 0:
@@ -80,7 +99,8 @@ class LeafGenerator:
                     for leaf in abjad.iterate(leaves).leaves():
                         attach(fermata, leaf)
             except AttributeError:
-                print("Note has no Fermata attribute")
+                None
+                #print("Note has no Fermata attribute")
 
             try:
                 markup = Markup(
@@ -93,15 +113,18 @@ class LeafGenerator:
                 for leaf in abjad.iterate(leaves).leaves():
                     attach(markup, leaf)
             except AttributeError:
-                print("Note has no Markup attribute")
+                #print("Note has no Markup attribute")
+                None
 
-        self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
+        #self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
+
+        self.add_leaf_to_voice(leaves, self.voices[self.id][self.voice])
+        #self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
 
         self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Measure
 
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
-        self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
 
     def display(self, id):
         includes = ['/home/yako/.virtualenvs/abjad/lib/python3.7/site-packages/abjad/docs/source/_stylesheets/default.ily']
@@ -113,12 +136,15 @@ class LeafGenerator:
         ly_path = make_ly[0]
         cmd = ['lilypond',
                '-dcrop',
-               '-dpoint-and-click',
+               '-dno-point-and-click',
                '-ddelete-intermediate-files',
                '-dbackend=svg',
                '-o' + args.output,
                ly_path]
         subprocess.run(cmd)
+
+## Handlers ##
+### Leaves ###
 
 def note_handler(unused_addr, args, eventData):
     event = eval("{" + eventData + "}")
@@ -140,10 +166,11 @@ def literal_handler(unused_addr, args, eventData):
     else:
         attach(literal, notes[id].container[id][index])
 
+### Indicators ###
 def dynamic_handler(unused_addr, args, eventData):
     #name='f', *, command=None, direction=None, format_hairpin_stop=None, hide=None, leak=None, name_is_textual=None, ordinal=None, sforzando=None, tweaks=None
     event = eval("{ " + eventData + "}")
-    print(event)
+    #print(event)
     id = event['id']
     if event['command'] == 'None':
         event['command'] = None
@@ -199,7 +226,8 @@ def markup_handler(unused_addr, args, eventData):
                 string = "markup."+command+"()"
                 markup = eval(string)
     except AttributeError:
-        print("Event has no markup format attribute")
+        #print("Event has no markup format attribute")
+        None
 
     attach( markup,
             select(notes[id].container[id]).leaves()[event['index']]
@@ -219,7 +247,16 @@ def articulation_handler(unused_addr, args, eventData):
             select(notes[id].container[id]).leaves()[event['index']]
             )
 
+### Spanners ###
+def slur_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    slur = Slur(direction = event['direction'])
+    selection = select(notes[id].container[id]).leaves() #selecciona leaves de Measure. Como hago para seleccionar leaves del Voice dentro de ese Measure?
+    sliceObj = eval('slice('+event['slice']+')')
+    attach( slur, selection[sliceObj])
 
+### Removing items ###
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
@@ -234,13 +271,16 @@ def remove_handler(unused_addr, args, eventData):
     voice.remove(voice[event['index']])
    #notes[id].container[id].pop([event['index']])
 
+### Display ###
 def display_handler(unused_addr, args, id):
     notes[id].display(id)
 
+## OSC Server ##
 def main(args):
     dispatcher = Dispatcher()
     dispatcher.map("/remove", remove_handler, "Remove")
     dispatcher.map("/detach", detach_handler, "Detach")
+    dispatcher.map("/slur_oneshot", slur_handler, "Slur")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")
     dispatcher.map("/dynamicTrend_oneshot", dynamicTrend_handler, "DynamicTrend")
