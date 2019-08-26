@@ -253,8 +253,16 @@ def slur_handler(unused_addr, args, eventData):
     id = event['id']
     slur = Slur(direction = event['direction'])
     selection = select(notes[id].container[id]).leaves() #selecciona leaves de Measure. Como hago para seleccionar leaves del Voice dentro de ese Measure?
-    sliceObj = eval('slice('+event['slice']+')')
-    attach( slur, selection[sliceObj])
+    default_slice = [0, len(selection), 1]
+    slice_params = event['slice']
+    for i in range(len(default_slice)):
+        try:
+            slice_params[i]
+        except IndexError:
+            slice_params.append(default_slice[i])
+    slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
+    detach(Slur, selection[slice_obj])
+    attach(slur, selection[slice_obj])
 
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):

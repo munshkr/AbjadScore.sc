@@ -231,8 +231,7 @@ a = Pbind(
 ~render.value(~id);
 
 //oneshot msgs
-
-~slur.(~id, "0,9"); // si un leaf ya tiene Slur, no sobreescribe y no tiene ningún efecto. Para sobreescribir hay que detachear antes. Tendría que ser consistente y pensar cuándo las sobreescrituras se hacen con ~detach desde el cliente y cuando están incorporadas en el server
+~slur.(~id, [4,7]); // si un leaf ya tiene Slur, no sobreescribe y no tiene ningún efecto. Para sobreescribir hay que detachear antes. Tendría que ser consistente y pensar cuándo las sobreescrituras se hacen con ~detach desde el cliente y cuando están incorporadas en el server
 ~dynamic.(~id, 'f', 0);
 ~dynamic.(~id, 'p', -1);
 ~dynamic.(~id, 'niente', -1 , 'backlash-!');
