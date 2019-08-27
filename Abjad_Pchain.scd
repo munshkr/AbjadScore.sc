@@ -168,6 +168,33 @@ Pbind(
 	NetAddr(ip, port).sendMsg('/slur_oneshot', msg);
 };
 
+~tie = {
+	|id, slice, voice = 'upper', direction = "None", left_broken = "None", repeat = "None", right_broken = "None", ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'direction': " ++ direction
+	++ ", 'left_broken': " ++ left_broken
+	++ ", 'repeat': " ++ repeat
+ 	++ ", 'right_broken': " ++ right_broken
+	++ ", 'voice': " ++ voice.asCompileString
+	++ ", 'slice': " ++ slice.asCompileString;
+	NetAddr(ip, port).sendMsg('/tie_oneshot', msg);
+};
+
+~textSpanner = {
+	|id, slice, left_text = 'left_text', right_text = 'right_text', markupCommand = 'upright', style = 'solid_line_with_arrow', direction = 'None', staff_padding = 4,tweaks = 'None', ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'left_text': " ++ left_text.asCompileString
+    ++ ", 'right_text': " ++ right_text.asCompileString
+	++ ", 'direction': " ++ direction.asCompileString
+	++ ", 'markupCommand': " ++ markupCommand.asCompileString
+    ++ ", 'tweaks': " ++ tweaks
+	++ ", 'style': " ++ style.asCompileString
+   	++ ", 'staff_padding': " ++ staff_padding
+	++ ", 'slice': " ++ slice.asCompileString;
+	NetAddr(ip, port).sendMsg('/text_spanner_oneshot', msg);
+};
+
+
 ~literal = {
 	|id, literal, position = \after, index = 'None', tweaks = 'None', ip = "127.0.0.1", port = 5005|
 	var msg = "'id': " ++ id.asCompileString
@@ -231,7 +258,9 @@ a = Pbind(
 ~render.value(~id);
 
 //oneshot msgs
-~slur.(~id, [4,7]); // si un leaf ya tiene Slur, no sobreescribe y no tiene ningún efecto. Para sobreescribir hay que detachear antes. Tendría que ser consistente y pensar cuándo las sobreescrituras se hacen con ~detach desde el cliente y cuando están incorporadas en el server
+~slur.(~id, [4,7]);
+~tie.(~id, [4,7]);
+~textSpanner.(~id, [4], "aire", "tono", staff_padding: 6 );
 ~dynamic.(~id, 'f', 0);
 ~dynamic.(~id, 'p', -1);
 ~dynamic.(~id, 'niente', -1 , 'backlash-!');

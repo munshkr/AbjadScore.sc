@@ -264,6 +264,64 @@ def slur_handler(unused_addr, args, eventData):
     detach(Slur, selection[slice_obj])
     attach(slur, selection[slice_obj])
 
+
+def tie_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    tie = Tie(direction = event['direction'], left_broken = event['left_broken'], repeat = event['repeat'], right_broken = event['right_broken'])
+    selection = select(notes[id].container[id]).leaves() #selecciona leaves de Measure. Como hago para seleccionar leaves del Voice dentro de ese Measure?
+    default_slice = [0, len(selection), 1]
+    slice_params = event['slice']
+    for i in range(len(default_slice)):
+        try:
+            slice_params[i]
+        except IndexError:
+            slice_params.append(default_slice[i])
+    slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
+    detach(Tie, selection[slice_obj])
+    attach(tie, selection[slice_obj])
+
+def text_spanner_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    markup_left = Markup(
+            event['left_text'],
+            #direction=event['direction']
+            #tweaks=event['tweaks']
+            )
+
+    markup_right = Markup(
+            event['right_text'],
+            #direction=event['direction']
+            #tweaks=event['tweaks']
+            )
+    """
+    try:
+        if len(event['markupCommand']) > 0:
+            for command in event['markupCommand']:
+                string_left = "markup_left."+command+"()"
+                string_right = "markup_right."+command+"()"
+                markup_left = eval(string_left)
+                markup_right = eval(string_right)
+    except AttributeError:
+        pass
+    """
+    start_text_span = StartTextSpan(left_text = markup_left, right_text = markup_right, style = event['style'])
+    selection = select(notes[id].container[id]).leaves()
+    default_slice = [0, len(selection), 1]
+    slice_params = event['slice']
+    for i in range(len(default_slice)):
+        try:
+            slice_params[i]
+        except IndexError:
+            slice_params.append(default_slice[i])
+    slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
+    #detach(text_spanner(), selection[slice_obj])
+    #text_spanner(selection[slice_obj], start_text_span=start_text_span)
+    override(selection[slice_params[0]]).text_spanner.staff_padding = event['staff_padding'] # -dcrop svg de lilypond no tiene en cuenta este override!
+    text_spanner(selection[slice_obj], start_text_span=start_text_span, stop_text_span = None)
+
+
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -289,6 +347,8 @@ def main(args):
     dispatcher.map("/remove", remove_handler, "Remove")
     dispatcher.map("/detach", detach_handler, "Detach")
     dispatcher.map("/slur_oneshot", slur_handler, "Slur")
+    dispatcher.map("/tie_oneshot", tie_handler, "Tie")
+    dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")
     dispatcher.map("/dynamicTrend_oneshot", dynamicTrend_handler, "DynamicTrend")
