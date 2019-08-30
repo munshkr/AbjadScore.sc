@@ -19,8 +19,14 @@ n = NetAddr("127.0.0.1", 5005);
 
 ~render = {
 	|id = "id0", ip = "127.0.0.1", port = 5005|
-	NetAddr(ip, port).sendMsg("/display", id);
+	NetAddr(ip, port).sendMsg("/display", id, 'False');
 };
+
+~preview = {
+	|id = "id0", ip = "127.0.0.1", port = 5005|
+	NetAddr(ip, port).sendMsg("/display", id, 'True');
+};
+
 )
 (
 ~abjadPattern =
@@ -159,6 +165,15 @@ Pbind(
 	NetAddr(ip, port).sendMsg('/articulation_oneshot', msg);
 };
 
+~barline = {
+	|id, bar_line, index = 0, ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'bar_line': " ++ bar_line.asCompileString
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/bar_line_oneshot', msg);
+};
+
+
 ~slur = {
 	|id, slice, voice = 'upper', direction = "None", ip = "127.0.0.1", port = 5005|
 	var msg = "'id': " ++ id.asCompileString
@@ -256,8 +271,10 @@ a = Pbind(
 
 (~abjadPattern <> a).play;
 ~render.value(~id);
+~preview.value(~id);
 
 //oneshot msgs
+~barline.(~id, '|.', -3) //Ojo, permite elegir posiciones arbitrarias
 ~slur.(~id, [4,7]);
 ~tie.(~id, [4,7]);
 ~textSpanner.(~id, [4], "aire", "tono", staff_padding: 6 );

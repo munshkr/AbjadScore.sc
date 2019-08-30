@@ -125,9 +125,26 @@ class LeafGenerator:
 
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
-
-    def display(self, id):
+    def display(self, id, preview):
         includes = ['/home/yako/.virtualenvs/abjad/lib/python3.7/site-packages/abjad/docs/source/_stylesheets/default.ily']
+        music = select(LeafGenerator.container[self.id]).leaves()
+        output_path = args.output
+        if preview == True:
+            output_path = args.output + '_preview'
+            for i in range(len(music)):
+                markup = Markup(i).tiny().with_color('blue')
+                attach(markup, music[i], tag='PREVIEW')
+        else:
+            for i in range(len(music)):
+                wrapper = inspect(music[i]).wrappers(Markup)
+                print(wrapper)
+                try:
+                    tag = wrapper[0].tag
+                    if tag == Tag('PREVIEW'):
+                        detach(Markup, music[i])
+                except:
+                    None
+
         lilypond_file = LilyPondFile.new(
                music = LeafGenerator.container[self.id],
                includes = includes
@@ -139,9 +156,10 @@ class LeafGenerator:
                '-dno-point-and-click',
                '-ddelete-intermediate-files',
                '-dbackend=svg',
-               '-o' + args.output,
+               '-o' + output_path,
                ly_path]
         subprocess.run(cmd)
+
 
 ## Handlers ##
 ### Leaves ###
@@ -247,6 +265,14 @@ def articulation_handler(unused_addr, args, eventData):
             select(notes[id].container[id]).leaves()[event['index']]
             )
 
+def bar_line_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    event['bar_line'] = event['bar_line'].replace("backlash-", "\\") #hack horrible
+    id = event['id']
+    bar_line = BarLine(event['bar_line'])
+    detach( BarLine, select(notes[id].container[id]).leaves()[event['index']])
+    attach( bar_line, select(notes[id].container[id]).leaves()[event['index']])
+
 ### Spanners ###
 def slur_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -338,8 +364,8 @@ def remove_handler(unused_addr, args, eventData):
    #notes[id].container[id].pop([event['index']])
 
 ### Display ###
-def display_handler(unused_addr, args, id):
-    notes[id].display(id)
+def display_handler(unused_addr, args, id, preview):
+    notes[id].display(id, eval(preview))
 
 ## OSC Server ##
 def main(args):
@@ -349,6 +375,7 @@ def main(args):
     dispatcher.map("/slur_oneshot", slur_handler, "Slur")
     dispatcher.map("/tie_oneshot", tie_handler, "Tie")
     dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
+    dispatcher.map("/bar_line_oneshot", bar_line_handler, "BarLine")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")
     dispatcher.map("/dynamicTrend_oneshot", dynamicTrend_handler, "DynamicTrend")
