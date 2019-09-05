@@ -56,7 +56,6 @@ class LeafGenerator:
         else:
             voice.append(leaf)
 
-
     def make(self):
         if self.rest:
             fraction = Fraction(self.dur).limit_denominator(40)
@@ -116,6 +115,20 @@ class LeafGenerator:
                 #print("Note has no Markup attribute")
                 None
 
+            try:
+                if len(self.notehead) > 0:
+                    if self.notehead == 'transparent':
+                        for leaf in abjad.iterate(leaves).leaves():
+                            override(leaf).note_head.transparent = True
+                    else:
+                        for leaf in abjad.iterate(leaves).leaves():
+                            override(leaf).note_head.style = self.notehead
+            except AttributeError:
+                None
+                #print("Note has no Notehead attribute")
+
+
+
         #self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
 
         self.add_leaf_to_voice(leaves, self.voices[self.id][self.voice])
@@ -134,6 +147,8 @@ class LeafGenerator:
             for i in range(len(music)):
                 markup = Markup(i).tiny().with_color('blue')
                 attach(markup, music[i], tag='PREVIEW')
+            id_markup = Markup('ID: ' + id).box().with_color(SchemeColor('purple'))
+            attach(id_markup, music[0], tag='PREVIEW')
         else:
             for i in range(len(music)):
                 wrapper = inspect(music[i]).wrappers(Markup)
@@ -273,6 +288,15 @@ def bar_line_handler(unused_addr, args, eventData):
     detach( BarLine, select(notes[id].container[id]).leaves()[event['index']])
     attach( bar_line, select(notes[id].container[id]).leaves()[event['index']])
 
+def notehead_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    leaf = select(notes[id].container[id]).leaves()[event['index']]
+    if event['notehead'] == 'transparent':
+        override(leaf).note_head.transparent = True
+    else:
+        override(leaf).note_head.style = event['notehead']
+
 ### Spanners ###
 def slur_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -375,6 +399,7 @@ def main(args):
     dispatcher.map("/slur_oneshot", slur_handler, "Slur")
     dispatcher.map("/tie_oneshot", tie_handler, "Tie")
     dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
+    dispatcher.map("/notehead_oneshot", notehead_handler, "Notehead")
     dispatcher.map("/bar_line_oneshot", bar_line_handler, "BarLine")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")

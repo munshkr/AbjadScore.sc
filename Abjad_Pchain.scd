@@ -81,7 +81,7 @@ Pbind(
 					}
 				);
 
-				[\id, \articulation, \dynamic, \fermata, \markup, \markupCommand, \voice, \octave].do({|key| //send as String
+				[\id, \articulation, \dynamic, \fermata, \markup, \markupCommand, \voice, \octave, \notehead].do({|key| //send as String
 					selectedKeys[key] !? {
 						selectedKeys[key] = selectedKeys[key].asCompileString
 					}
@@ -165,6 +165,14 @@ Pbind(
 	NetAddr(ip, port).sendMsg('/articulation_oneshot', msg);
 };
 
+~notehead = {
+	|id, notehead, index = 0, ip = "127.0.0.1", port = 5005|
+	var msg = "'id': " ++ id.asCompileString
+	++ ", 'notehead': " ++ notehead.asCompileString
+	++ ", 'index': " ++ index;
+	NetAddr(ip, port).sendMsg('/notehead_oneshot', msg);
+};
+
 ~barline = {
 	|id, bar_line, index = 0, ip = "127.0.0.1", port = 5005|
 	var msg = "'id': " ++ id.asCompileString
@@ -240,7 +248,7 @@ Pbind(
 
 ////// Para el usuario
 (
-~id = \id1004;
+~id = \id1005;
 
 a = Pbind(
 	\abjad, \note,
@@ -256,11 +264,13 @@ a = Pbind(
 	\octave, 4,
 	\root, 3,
 	\mtranspose, Pxrand([-2,2,0], inf),
-	\scale, Scale.chromatic,
+	\scale, Scale.major,
 	\degree, Pseries(0, 1, inf),
 	\articulation, Pseq(['.', "", "", "", 'accent'], inf),
 	\articDirection, \Up,
 	\fermata, Pseq(["", "", "", "", "", 'fermata'], inf),
+	\notehead, Prand(['altdefault','baroque','mensural','neomensural', 'petrucci','harmonic','harmonic-black', 'harmonic-mixed', 'diamond', 'cross', 'xcircle', 'triangle', 'slash', 'do','re','mi','fa','la','ti'], inf),
+//	\notehead, 'transparent'
 	//\markupDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
 	//\markup, "None",
 	//\markupCommand, Pseq([ [""],[""],['italic'], ['box', 'sans'], ['tiny', 'box'], ['bold'] ],inf),
@@ -278,7 +288,7 @@ a = Pbind(
 ~slur.(~id, [4,7]);
 ~tie.(~id, [4,7]);
 ~textSpanner.(~id, [4], "aire", "tono", staff_padding: 6 );
-~dynamic.(~id, 'f', 0);
+~dynamic.(~id, 'f', 10);
 ~dynamic.(~id, 'p', -1);
 ~dynamic.(~id, 'niente', -1 , 'backlash-!');
 ~render.value(~id);
@@ -292,6 +302,10 @@ a = Pbind(
 
 ~articulation.(~id, 'accent', 0)
 ~render.value(~id);
+
+~notehead.(~id, 'harmonic', -1)
+~render.value(~id);
+
 
 ~literal.(~id, 'backlash-addlyrics { qui- sie- ra ser un test }', \after, 0);
 ~render.value(~id);
