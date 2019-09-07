@@ -17,6 +17,7 @@ import subprocess
 import argparse
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
+import os
 
 notes = {} #store {'id' : [generated leaves]} //reemplazar notes[id] por LeafGenerator.container[id] ?
 
@@ -139,7 +140,7 @@ class LeafGenerator:
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
     def display(self, id, preview):
-        includes = ['/home/yako/.virtualenvs/abjad/lib/python3.7/site-packages/abjad/docs/source/_stylesheets/default.ily']
+        includes = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
         music = select(LeafGenerator.container[self.id]).leaves()
         output_path = args.output
         if preview == True:
