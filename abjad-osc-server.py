@@ -414,8 +414,7 @@ def main(args):
     dispatcher.map("/note_event", note_handler, "Note")
     dispatcher.map("/display", display_handler, "Display")
 
-    server = osc_server.ThreadingOSCUDPServer(
-    (args.ip, args.port), dispatcher)
+    server = osc_server.ThreadingOSCUDPServer((args.host, args.port), dispatcher)
 
     print("Serving on {}".format(server.server_address))
     server.serve_forever()
@@ -423,14 +422,14 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--ip",
-        default="127.0.0.1",
+    parser.add_argument("-H", "--host",
+        default="localhost",
         help="The ip to listen on")
-    parser.add_argument("--port",
+    parser.add_argument("-P", "--port",
         type=int,
         default=5005,
         help="The port to listen on")
-    parser.add_argument("--output",
+    parser.add_argument("-O", "--output",
         default='./output',
         help="Location of compiled .ly")
     parser.add_argument("-I", "--include",
