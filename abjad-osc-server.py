@@ -19,6 +19,9 @@ from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 import os
 
+DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
+
+includes = []
 notes = {} #store {'id' : [generated leaves]} //reemplazar notes[id] por LeafGenerator.container[id] ?
 
 clef = Clef('bass')
@@ -140,7 +143,6 @@ class LeafGenerator:
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
     def display(self, id, preview):
-        includes = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
         music = select(LeafGenerator.container[self.id]).leaves()
         output_path = args.output
         if preview == True:
@@ -394,6 +396,8 @@ def display_handler(unused_addr, args, id, preview):
 
 ## OSC Server ##
 def main(args):
+    includes = DEFAULT_INCLUDES + args.include
+
     dispatcher = Dispatcher()
     dispatcher.map("/remove", remove_handler, "Remove")
     dispatcher.map("/detach", detach_handler, "Detach")
@@ -429,6 +433,10 @@ if __name__ == "__main__":
     parser.add_argument("--output",
         default='./output',
         help="Location of compiled .ly")
+    parser.add_argument("-I", "--include",
+        default=[],
+        nargs="+",
+        help="Include Lilypond file")
 
     args = parser.parse_args()
 
