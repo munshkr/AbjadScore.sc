@@ -1,0 +1,8 @@
+(
+  \name: "AbjadScore",
+  \summary: "A set of classes for writing scores using Abjad and Pattern classes.",
+  \author: "Leandro Yako, Damián Silvani",
+  \version: "0.1.0",
+  \license: "GPL-3.0-or-later",
+  \dependencies: []
+)
