@@ -5,11 +5,20 @@ AbjadScore {
 		^super.newCopyArgs(host, port);
 	}
 
-	render {
-		NetAddr(host, port).sendMsg("/display", id, 'False');
+	notes { |id, pbind|
+		^AbjadPattern.new(this, id.asSymbol, pbind, \note).play;
 	}
 
-	preview {
-		NetAddr(host, port).sendMsg("/display", id, 'True');
+	render { |pattern|
+		NetAddr(host, port).sendMsg("/display", pattern.id, \False);
+	}
+
+	preview { |pattern|
+		NetAddr(host, port).sendMsg("/display", pattern.id, \True);
+	}
+
+	prSendEvents { |path, pairs|
+		NetAddr(host, port).sendMsg(path, pairs.asString.drop(1).drop(-1));
+		(pairs.asString + "\n").postln;
 	}
 }
