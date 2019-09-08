@@ -21,4 +21,8 @@ AbjadScore {
 		NetAddr(host, port).sendMsg(path, pairs.asString.drop(1).drop(-1));
 		(pairs.asString + "\n").postln;
 	}
+
+	prSendMsg { |path, msg|
+		NetAddr(host, port).sendMsg(path, msg);
+	}
 }
