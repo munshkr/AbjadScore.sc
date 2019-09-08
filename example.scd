@@ -3,9 +3,10 @@
 
 (
 ~foo = ~score.notes(\foo, Pbind(
-  \voice, \upper,
-  \dur, Pseq([Pn(1/12,6),1/4,Pn(1/6, 3),1/4, Pn(1/16, 4) ], repeats: 1),
-  \octave, 4
+	\voice, \upper,
+	\dur, Pseq([Pn(1/12,6),1/4,Pn(1/6, 3),1/4, Pn(1/16, 4) ], repeats: 1),
+	\octave, 4,
+	\degree, Pser([0, 2, 6], 16),
 ));
 )
 
@@ -15,3 +16,5 @@
 // oneshot messages
 ~foo.slur([4, 7]);
 ~foo.textSpanner([4], "aire", "tono", staff_padding: 6);
+
+

@@ -178,14 +178,26 @@ class LeafGenerator:
                ly_path]
         subprocess.run(cmd)
 
+    def clear(id):
+        if id in LeafGenerator.container:
+            del LeafGenerator.container[id]
+        if id in LeafGenerator.voices:
+            del LeafGenerator.voices[id]
+
 
 ## Handlers ##
 ### Leaves ###
 
 def note_handler(unused_addr, args, eventData):
     event = eval("{" + eventData + "}")
-    notes[event['id']] = LeafGenerator(**event)
-    notes[event['id']].make()
+    if event.get('new'):
+        id = event['id']
+        if id in notes:
+            del notes[id]
+        LeafGenerator.clear(id)
+    else:
+        notes[event['id']] = LeafGenerator(**event)
+        notes[event['id']].make()
 
 def literal_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}") #eval elimina la posibilidad de "\\" para imprimir "\"?

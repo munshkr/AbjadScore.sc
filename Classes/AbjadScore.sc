@@ -9,12 +9,12 @@ AbjadScore {
 		^AbjadPattern.new(this, id.asSymbol, pbind, \note).play;
 	}
 
-	render { |pattern|
-		NetAddr(host, port).sendMsg("/display", pattern.id, \False);
+	render { |patternId|
+		NetAddr(host, port).sendMsg("/display", patternId, \False);
 	}
 
-	preview { |pattern|
-		NetAddr(host, port).sendMsg("/display", pattern.id, \True);
+	preview { |patternId|
+		NetAddr(host, port).sendMsg("/display", patternId, \True);
 	}
 
 	prSendEvents { |path, pairs|

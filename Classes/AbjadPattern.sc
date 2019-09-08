@@ -1,7 +1,5 @@
 AbjadPattern {
-	var <score;
-	var <>id;
-	var <pbind, <type;
+	var <score, <id, <pbind, <type;
 
 	classvar patternBuilder;
 
@@ -14,15 +12,15 @@ AbjadPattern {
 	}
 
 	play {
-		(patternBuilder <> (abjad: type, id: id, score: score) <> pbind).play;
+		(patternBuilder <> (abjad: type, id: id, score: score) <> Pseq([(new: \True), pbind])).play;
 	}
 
 	render {
-		score.render(this);
+		score.render(this.id);
 	}
 
 	preview {
-		score.preview(this);
+		score.preview(this.id);
 	}
 
 	*prPatternBuilder {
@@ -52,6 +50,7 @@ AbjadPattern {
 			\finish, {|e|
 				var path = "/" ++ e.abjad ++"_event";
 				var selectedKeys;
+
 				selectedKeys = e.reject( //general cleaning
 					{
 						|item, key|
