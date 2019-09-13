@@ -7,19 +7,21 @@
 		0,
 		Pbind(
 			\voice, 'lower',
-			\dur, Pseq([1/4], 10),
+			\dur, Pseq([1/4], 20),
 			\notehead, \default,
 			\octave, 3,
-			\degree, Pseries(5, 1).collect(~degree = _),
+			\root, 1,
+			\degree, Pseries(5, 1),
 			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
-		),
+		).collect(~event = _),
 		0.001,
 		Pbind(
 			\voice, 'upper',
-			\dur, Pseq([1/4], 10),
+			\dur, Pseq([1/4], 20),
 			\notehead, \harmonic,
 			\octave, 3,
-			\degree, Pfunc({~degree}),
+			\root, Pfunc({~event[\root]}),
+			\degree, Pfunc({~event[\degree]}),
 			\ctranspose, 7,
 			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
 		)

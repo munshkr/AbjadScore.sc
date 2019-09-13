@@ -36,7 +36,8 @@ class LeafGenerator:
             setattr(self, key, value)
 
         if self.id not in self.container.keys():
-            self.container[self.id] = Measure()
+            #self.container[self.id] = Measure()
+            self.container[self.id] = Staff()
 
 #Voice(components=None, lilypond_type='Voice', is_simultaneous=None, name=None)
         #print(self.voice)
@@ -142,37 +143,33 @@ class LeafGenerator:
 
         self.add_leaf_to_voice(leaves, self.voices[self.id][self.voice])
         #self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
-
-        self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Measure
-
+        self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Container
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
-        #print(self.voices)
-
     def display(self, id, preview):
-        #print(LeafGenerator.voices[self.id])
-        #upper = LeafGenerator.voices[self.id]['upper']
-        #lower = LeafGenerator.voices[self.id]['lower']
-        #override(upper).stem.direction = Up
-        #override(lower).stem.direction = Down
-        staff = Staff()
-        for voice in LeafGenerator.voices[self.id].values():
-            staff.append(voice)
-        #staff.append(lower)
-        #staff.append(upper)
-        staff.is_simultaneous = True
+        music = LeafGenerator.container[self.id]
 
-        #print(LeafGenerator.voices[self.id])
-        #music = LeafGenerator.container[self.id]
-        music = staff
+        if len(music) > 1:
+            music.is_simultaneous = True
+            for i, voice in enumerate(music):
+                if i % 2 == 0: #if voice number is even
+                    override(voice).stem.direction = Down
+                else:
+                    override(voice).stem.direction = Up
+
         output_path = args.output
         if preview == True:
             output_path = args.output + '_preview'
-            for i in range(len(music)):
-                markup = Markup(i).tiny().with_color('blue')
-                attach(markup, music[i], tag='PREVIEW')
-            id_markup = Markup('ID: ' + id).box().with_color(SchemeColor('purple'))
-            attach(id_markup, music[0], tag='PREVIEW')
+            colors = ['blue', 'darkblue', 'cyan', 'darkcyan']
+            for voice_num, voice in enumerate(music):
+                for leaf_num, leaf in enumerate(voice):
+                    number = str(voice_num) + '-' + str(leaf_num)
+                    markup = Markup(number).tiny().with_color(colors[voice_num])
+                    attach(markup, leaf, tag='PREVIEW')
+                voice_markup = Markup('Voice '+ str(voice_num) + ':' + voice.name).box().with_color(colors[voice_num])
+                attach(voice_markup, voice[0], tag='PREVIEW')
+            id_markup = Markup('ID: ' + id, direction = Up).box().with_color(SchemeColor('purple'))
+            attach(id_markup, select(music).leaves()[0], tag='PREVIEW')
         else:
             for i in range(len(music)):
                 wrapper = inspect(music[i]).wrappers(Markup)
