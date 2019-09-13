@@ -21,8 +21,7 @@ import os
 
 DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
 
-includes = []
-notes = {} #store {'id' : [generated leaves]} //reemplazar notes[id] por LeafGenerator.container[id] ?
+notes = {} #store {'id' : [generated leaves]} //refactor cuando tenga claro que hacer con los containers Voice -> Measure -> Staff
 
 clef = Clef('bass')
 
@@ -30,6 +29,7 @@ class LeafGenerator:
     container = {}
     voices = {}
     #voices = { 'id1000' : {'upper' : Voice() ,'lower' : Voice()}, 'id1001' : {'upper' : Voice()} }
+    includes = []
 
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
@@ -39,13 +39,18 @@ class LeafGenerator:
             self.container[self.id] = Measure()
 
 #Voice(components=None, lilypond_type='Voice', is_simultaneous=None, name=None)
+        #print(self.voice)
+
         if self.id not in self.voices.keys():
             self.voices[self.id] = { self.voice : Voice(name = self.voice) }
         if self.voice not in self.voices[self.id].keys():
-            self.voices[self.id]= { self.voice : Voice(name = self.voice) }
+            self.voices[self.id][self.voice] = Voice(name = self.voice)
+
 
     def add_leaf_to_voice(self, leaf, voice):
-        if len(voice) > 0:
+        #print(len(select(voice).leaves()))
+        #print(voice)
+        if len(select(voice).leaves()) > 0:
             lastLeaf = voice[-1]
             if type(leaf[0]) is type(Tuplet()):
                 if type(lastLeaf) is type(leaf[0]):
@@ -142,8 +147,24 @@ class LeafGenerator:
 
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
+        #print(self.voices)
+
     def display(self, id, preview):
-        music = select(LeafGenerator.container[self.id]).leaves()
+        #print(LeafGenerator.voices[self.id])
+        #upper = LeafGenerator.voices[self.id]['upper']
+        #lower = LeafGenerator.voices[self.id]['lower']
+        #override(upper).stem.direction = Up
+        #override(lower).stem.direction = Down
+        staff = Staff()
+        for voice in LeafGenerator.voices[self.id].values():
+            staff.append(voice)
+        #staff.append(lower)
+        #staff.append(upper)
+        staff.is_simultaneous = True
+
+        #print(LeafGenerator.voices[self.id])
+        #music = LeafGenerator.container[self.id]
+        music = staff
         output_path = args.output
         if preview == True:
             output_path = args.output + '_preview'
@@ -155,7 +176,7 @@ class LeafGenerator:
         else:
             for i in range(len(music)):
                 wrapper = inspect(music[i]).wrappers(Markup)
-                print(wrapper)
+                #print(wrapper)
                 try:
                     tag = wrapper[0].tag
                     if tag == Tag('PREVIEW'):
@@ -164,8 +185,8 @@ class LeafGenerator:
                     None
 
         lilypond_file = LilyPondFile.new(
-               music = LeafGenerator.container[self.id],
-               includes = includes
+               music = music, #LeafGenerator.container[self.id],
+               includes = self.includes
         )
         make_ly = persist(lilypond_file).as_ly()
         ly_path = make_ly[0]
@@ -408,8 +429,7 @@ def display_handler(unused_addr, args, id, preview):
 
 ## OSC Server ##
 def main(args):
-    includes = DEFAULT_INCLUDES + args.include
-
+    LeafGenerator.includes = DEFAULT_INCLUDES + args.include
     dispatcher = Dispatcher()
     dispatcher.map("/remove", remove_handler, "Remove")
     dispatcher.map("/detach", detach_handler, "Detach")

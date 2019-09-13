@@ -4,17 +4,18 @@
 (
 ~foo = ~score.notes(\foo, Pbind(
 	\voice, \upper,
-	\dur, Pseq([Pn(1/12,6),1/4,Pn(1/6, 3),1/4, Pn(1/16, 4) ], repeats: 1),
+	\dur, Pseq([3/4, Rest(1/4)], repeats: 1),
 	\octave, 4,
-	\degree, Pser([0, 2, 6], 16),
+	\degree, Pwhite(5,7),
 ));
 )
 
 ~foo.preview;
 ~foo.render;
+~foo.dynamic('niente', -1, 'backlash-!').dynamicTrend(shape: '>o', index: 0,  left_broken: 'True');
+
 
 // oneshot messages
-~foo.slur([4, 7]);
-~foo.textSpanner([4], "aire", "tono", staff_padding: 6);
-
+~foo.slur([4, 15]);
+~foo.textSpanner([9], "aire", "tono", staff_padding: 1);
 

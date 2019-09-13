@@ -14,7 +14,7 @@ abjad-zero-padding-glissando = #(
 
 %%% TEXT SPANNER LINE STYLES %%%
 
-abjad-dashed-line-with-arrow = #(
+abjad_dashed_line_with_arrow = #(
     define-music-function
     (parser location music)
     (ly:music?)
@@ -35,7 +35,7 @@ abjad-dashed-line-with-arrow = #(
     #}
     )
 
-abjad-dashed-line-with-hook = #(
+abjad_dashed_line_with_hook = #(
     define-music-function
     (parser location music)
     (ly:music?)
@@ -56,7 +56,7 @@ abjad-dashed-line-with-hook = #(
     #}
     )
     
-abjad-invisible-line = #(
+abjad_invisible_line = #(
     define-music-function
     (parser location music)
     (ly:music?)
@@ -73,7 +73,7 @@ abjad-invisible-line = #(
     #}
     )
     
-abjad-solid-line-with-arrow = #(
+abjad_solid_line_with_arrow = #(
     define-music-function
     (parser location music)
     (ly:music?)
@@ -92,7 +92,7 @@ abjad-solid-line-with-arrow = #(
     #}
     )
     
-abjad-solid-line-with-hook = #(
+abjad_solid_line_with_hook = #(
     define-music-function
     (parser location music)
     (ly:music?)
