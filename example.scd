@@ -2,20 +2,42 @@
 //~score = AbjadScore.new("127.0.0.1", 5005);
 
 (
-~foo = ~score.notes(\foo, Pbind(
-	\voice, \upper,
-	\dur, Pseq([3/4, Rest(1/4)], repeats: 1),
-	\octave, 4,
-	\degree, Pwhite(5,7),
-));
+~a0 = ~score.notes(\multiphonics,
+	Ptpar([
+		0,
+		Pbind(
+			\voice, 'lower',
+			\dur, Pseq([1/4], 10),
+			\notehead, \default,
+			\octave, 3,
+			\degree, Pseries(5, 1).collect(~degree = _),
+			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+		),
+		0.001,
+		Pbind(
+			\voice, 'upper',
+			\dur, Pseq([1/4], 10),
+			\notehead, \harmonic,
+			\octave, 3,
+			\degree, Pfunc({~degree}),
+			\ctranspose, 7,
+			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+		)
+	])
 )
+)
+'\\\\!'
+~a0.preview;
+~a0.render;
+~a0.dynamic('niente', -1, '\\\\!').dynamicTrend(shape: '>o', index: 0,  left_broken: 'True');
+~a0.dynamic('niente', -1, 'backlash-!').dynamicTrend(shape: 'o<|', index: 0,  left_broken: 'True');
 
-~foo.preview;
-~foo.render;
-~foo.dynamic('niente', -1, 'backlash-!').dynamicTrend(shape: '>o', index: 0,  left_broken: 'True');
+~a0.textSpanner([0], "air", "tone", 'upright', 'dashed_line_with_arrow', staff_padding: 3);
 
+~a0.detach('Dynamic', 0)
+~a0.detach('text_spanner', 0)
+~a0.remove(1)
 
-// oneshot messages
-~foo.slur([4, 15]);
-~foo.textSpanner([9], "aire", "tono", staff_padding: 1);
+~a0.literal('backlash-addlyrics { O E}', \after, 0)
 
+~a0.dynamic('mp', 0)
