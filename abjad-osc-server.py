@@ -148,14 +148,16 @@ class LeafGenerator:
 
     def display(self, id, preview):
         music = LeafGenerator.container[self.id]
-
+        voice_direction = {}
         if len(music) > 1:
             music.is_simultaneous = True
             for i, voice in enumerate(music):
                 if i % 2 == 0: #if voice number is even
-                    override(voice).stem.direction = Down
+                    direction = Down
                 else:
-                    override(voice).stem.direction = Up
+                    direction = Up
+                voice_direction[voice.name] = direction
+                override(voice).stem.direction = direction
 
         output_path = args.output
         if preview == True:
@@ -164,25 +166,25 @@ class LeafGenerator:
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
                     number = str(voice_num) + '-' + str(leaf_num)
-                    markup = Markup(number).tiny().with_color(colors[voice_num])
+                    markup = Markup(number, direction = voice_direction[voice.name]).tiny().with_color(colors[voice_num])
                     attach(markup, leaf, tag='PREVIEW')
-                voice_markup = Markup('Voice '+ str(voice_num) + ':' + voice.name).box().with_color(colors[voice_num])
+                voice_markup = Markup('Voice '+ str(voice_num) + ':' + voice.name, direction = voice_direction[voice.name]).box().with_color(colors[voice_num])
                 attach(voice_markup, voice[0], tag='PREVIEW')
             id_markup = Markup('ID: ' + id, direction = Up).box().with_color(SchemeColor('purple'))
             attach(id_markup, select(music).leaves()[0], tag='PREVIEW')
         else:
-            for i in range(len(music)):
-                wrapper = inspect(music[i]).wrappers(Markup)
-                #print(wrapper)
-                try:
-                    tag = wrapper[0].tag
-                    if tag == Tag('PREVIEW'):
-                        detach(Markup, music[i])
-                except:
-                    None
+            for voice_num, voice in enumerate(music):
+                for leaf_num, leaf in enumerate(voice):
+                    wrapper = inspect(leaf).wrappers(Markup)
+                    try:
+                        tag = wrapper[0].tag
+                        if tag == Tag('PREVIEW'):
+                            detach(Markup, leaf)
+                    except:
+                        None
 
         lilypond_file = LilyPondFile.new(
-               music = music, #LeafGenerator.container[self.id],
+               music = music,
                includes = self.includes
         )
         make_ly = persist(lilypond_file).as_ly()
