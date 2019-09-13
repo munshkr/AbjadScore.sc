@@ -134,9 +134,10 @@ AbjadPattern {
 		score.prSendMsg('/detach', msg);
 	}
 
-	remove { |index = 0|
+	remove { |index = 0, voice = 'upper'|
 		var msg = "'id': " ++ id.asCompileString
-		++ ", 'index': " ++ index;
+		++ ", 'index': " ++ index
+		++ ", 'voice': " ++ voice.asCompileString;
 		score.prSendMsg('/remove', msg);
 	}
 

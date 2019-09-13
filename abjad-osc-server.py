@@ -418,9 +418,9 @@ def detach_handler(unused_addr, args, eventData):
 def remove_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
-    voice = notes[id].container[id][0] #Para arreglar: VOICE HARDCODEADA EN MEASURE[0]
+    voice_name = event['voice']
+    voice = notes[id].container[id][voice_name] 
     voice.remove(voice[event['index']])
-   #notes[id].container[id].pop([event['index']])
 
 ### Display ###
 def display_handler(unused_addr, args, id, preview):
