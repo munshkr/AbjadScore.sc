@@ -158,6 +158,9 @@ class LeafGenerator:
                     direction = Up
                 voice_direction[voice.name] = direction
                 override(voice).stem.direction = direction
+        else:
+            voice = music[0]
+            voice_direction[voice.name] = None
 
         output_path = args.output
         if preview == True:
@@ -203,7 +206,6 @@ class LeafGenerator:
             del LeafGenerator.container[id]
         if id in LeafGenerator.voices:
             del LeafGenerator.voices[id]
-
 
 ## Handlers ##
 ### Leaves ###
@@ -349,7 +351,6 @@ def slur_handler(unused_addr, args, eventData):
     detach(Slur, selection[slice_obj])
     attach(slur, selection[slice_obj])
 
-
 def tie_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
@@ -406,7 +407,6 @@ def text_spanner_handler(unused_addr, args, eventData):
     override(selection[slice_params[0]]).text_spanner.staff_padding = event['staff_padding'] # -dcrop svg de lilypond no tiene en cuenta este override!
     text_spanner(selection[slice_obj], start_text_span=start_text_span, stop_text_span = None)
 
-
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -419,7 +419,7 @@ def remove_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
     voice_name = event['voice']
-    voice = notes[id].container[id][voice_name] 
+    voice = notes[id].container[id][voice_name]
     voice.remove(voice[event['index']])
 
 ### Display ###
@@ -452,13 +452,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument("-H", "--host",
         default="localhost",
         help="The ip to listen on")
     parser.add_argument("-P", "--port",
         type=int,
-        default=5005,
+        default=5000,
         help="The port to listen on")
     parser.add_argument("-O", "--output",
         default='./output',
@@ -467,7 +466,5 @@ if __name__ == "__main__":
         default=[],
         nargs="+",
         help="Include Lilypond file")
-
     args = parser.parse_args()
-
     main(args)
