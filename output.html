@@ -1,13 +1,78 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <!-- Refresh automatically -->
-    <meta http-equiv='refresh' content='2'>
-    <title>Abjad OSC</title>
-  </head>
-  <body>
-    <object type='image/svg+xml' data="output.cropped.svg">There is no output SVG or your browser does not support SVG</object>
-  </body>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+p {
+  text-align: left;
+  font-size: 10px;
+  margin-top: 0px;
+}
+</style>
+</head>
+<body>
+<!-- script type="text/javascript" src="./live.js"></script -->
+
+<object type='image/svg+xml' data="output.cropped.svg">There is no output SVG or your browser does not support SVG</object>
+<p>
+<!-- button onclick="startCount()">Start count!</button -->
+<!-- button onclick="stopCount()">Stop count!</button -->
+</p>
+
+<p id="score">Disabled score</p>
+<p id="txt"></p>
+
+<script>
+var t;
+var start_beat = 4;
+var wait_beat = 4;
+var bpm = 92;
+var beat_dur = 60/bpm;
+var c = start_beat + wait_beat;
+var timer_is_on = 0;
+
+function changeBackground(color) {
+   document.body.style.background = color;
+}
+
+changeBackground('GhostWhite')
+
+function timedCount() {
+  document.getElementById("txt").innerHTML = c;
+  c = c - 1;
+  t = setTimeout(timedCount, 1000 * beat_dur);
+
+  if (c < start_beat){
+    if (c % 2) {
+      changeBackground('DarkSlateGray');
+    } else {
+      changeBackground('DarkGray');
+    }
+
+  if (c < 0) {
+    stopCount()
+    }
+  }
+}
+
+function startCount() {
+  if (!timer_is_on) {
+      timer_is_on = start_beat + wait_beat;
+      timedCount();
+  }
+}
+
+
+function stopCount() {
+  clearTimeout(t);
+  changeBackground('white');
+  document.getElementById("score").innerHTML = "Enabled score";
+  timer_is_on = 0;
+  c = start_beat + wait_beat;
+}
+
+startCount();
+
+</script>
+</body>
 </html>

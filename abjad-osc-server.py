@@ -18,10 +18,13 @@ import argparse
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 import os
+from flask import Flask, render_template, request, escape
 
 DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
 
 notes = {} #store {'id' : [generated leaves]} //refactor cuando tenga claro que hacer con los containers Voice -> Measure -> Staff
+
+message = "Test message";
 
 clef = Clef('bass')
 
@@ -204,14 +207,15 @@ class LeafGenerator:
         if id in LeafGenerator.voices:
             del LeafGenerator.voices[id]
 
-
 ## Handlers ##
 ### Leaves ###
 
 def note_handler(unused_addr, args, eventData):
+    global message
     event = eval("{" + eventData + "}")
     if event.get('new'):
         id = event['id']
+        message = id
         if id in notes:
             del notes[id]
         LeafGenerator.clear(id)
@@ -349,7 +353,6 @@ def slur_handler(unused_addr, args, eventData):
     detach(Slur, selection[slice_obj])
     attach(slur, selection[slice_obj])
 
-
 def tie_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
@@ -406,7 +409,6 @@ def text_spanner_handler(unused_addr, args, eventData):
     override(selection[slice_params[0]]).text_spanner.staff_padding = event['staff_padding'] # -dcrop svg de lilypond no tiene en cuenta este override!
     text_spanner(selection[slice_obj], start_text_span=start_text_span, stop_text_span = None)
 
-
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -452,7 +454,6 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument("-H", "--host",
         default="localhost",
         help="The ip to listen on")
@@ -461,13 +462,25 @@ if __name__ == "__main__":
         default=5005,
         help="The port to listen on")
     parser.add_argument("-O", "--output",
-        default='./output',
+        default='./static/svg/output',
         help="Location of compiled .ly")
     parser.add_argument("-I", "--include",
         default=[],
         nargs="+",
         help="Include Lilypond file")
-
     args = parser.parse_args()
-
     main(args)
+
+    app.run(host="localhost", port=5005) #Flask
+
+## Flask ##
+app = Flask(__name__)
+@app.route("/tuba")
+def html_render():
+    #name = request.args.get("name", "World")
+    return render_template('output.html', message = message)
+
+@app.route("/preview")
+def html_preview():
+    #name = request.args.get("name", "World")
+    return render_template('output_preview.html', message = message)
