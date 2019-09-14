@@ -161,6 +161,10 @@ class LeafGenerator:
                     direction = Up
                 voice_direction[voice.name] = direction
                 override(voice).stem.direction = direction
+        else:
+            voice = music[0]
+            voice_direction[voice.name] = None
+
 
         output_path = args.output
         if preview == True:
