@@ -8,17 +8,26 @@ p {
   font-size: 10px;
   margin-top: 0px;
 }
+.container {
+  border: 10px solid #b6bdc3;
+  width: 100%;
+  background: #fff;
+  margin: 0 auto;
+}
+
+object {
+  width: 100%;
+}
 </style>
 </head>
 <body>
 
-<object type='image/svg+xml' data="{{ url_for('static', filename='svg/output.cropped.svg') }}">There is no output SVG or your browser does not support SVG</object>
+<object type='image/svg+xml' data="svg/output.cropped.svg">There is no output SVG or your browser does not support SVG</object>
 <p>
 </p>
 
 <p id="score">Disabled score</p>
 <p id="txt"></p>
-<p>{{message}}</p>
 
 <script>
 var t;

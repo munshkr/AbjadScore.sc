@@ -9,7 +9,6 @@ Lilypond custom stylesheets from Abjad '/docs/source/_stylesheets/default.ily'
 
 Default ip: 127.0.0.1
 Default port: 5005
-Default output path = './output'
 """
 
 from abjad import *
@@ -18,13 +17,11 @@ import argparse
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 import os
-from flask import Flask, render_template, request, escape
 
 DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
 
 notes = {} #store {'id' : [generated leaves]} //refactor cuando tenga claro que hacer con los containers Voice -> Measure -> Staff
-counter = 0
-message = "Test message";
+#message = "Test message";
 
 clef = Clef('bass')
 
@@ -49,7 +46,6 @@ class LeafGenerator:
             self.voices[self.id] = { self.voice : Voice(name = self.voice) }
         if self.voice not in self.voices[self.id].keys():
             self.voices[self.id][self.voice] = Voice(name = self.voice)
-
 
     def add_leaf_to_voice(self, leaf, voice):
         #print(len(select(voice).leaves()))
@@ -148,9 +144,7 @@ class LeafGenerator:
         #self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
         self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Container
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
-
     def display(self, id, preview):
-        global counter
         music = LeafGenerator.container[self.id]
         voice_direction = {}
         if len(music) > 1:
@@ -166,9 +160,9 @@ class LeafGenerator:
             voice = music[0]
             voice_direction[voice.name] = None
 
-        output_path = args.output
+        output_path = args.instrument+'svg/output'
         if preview == True:
-            output_path = args.output + '_preview'
+            output_path = './preview/'+output_path
             colors = ['blue', 'darkblue', 'cyan', 'darkcyan']
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
@@ -180,6 +174,7 @@ class LeafGenerator:
             id_markup = Markup('ID: ' + id, direction = Up).box().with_color(SchemeColor('purple'))
             attach(id_markup, select(music).leaves()[0], tag='PREVIEW')
         else:
+            output_path = './'+args.output
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
                     wrapper = inspect(leaf).wrappers(Markup)
@@ -203,11 +198,11 @@ class LeafGenerator:
                '-dbackend=svg',
                '-o' + output_path,
                ly_path]
-        #subprocess.run(cmd)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, error = p.communicate()
-        return_code = p.poll()
-        refresh(return_code, preview)
+        subprocess.run(cmd)
+        #p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #out, error = p.communicate()
+        #return_code = p.poll()
+        #refresh(return_code, preview)
 
     def clear(id):
         if id in LeafGenerator.container:
@@ -215,27 +210,10 @@ class LeafGenerator:
         if id in LeafGenerator.voices:
             del LeafGenerator.voices[id]
 
-## Refresh html ##
-
-def refresh(return_code, preview):
-    if return_code == 0:
-        print(return_code)
-        print(preview)
-        if preview:
-            print("Refreshing output_preview.html")
-            #call function here
-        else:
-            print("Refreshing output.html")
-            #call function here
-    else:
-        print(return_code)
-        print("Error rendering Lilypond")
-
-## Handlers ##
+# Handlers ##
 ### Leaves ###
 
 def note_handler(unused_addr, args, eventData):
-    global message
     event = eval("{" + eventData + "}")
     if event.get('new'):
         id = event['id']
@@ -489,9 +467,12 @@ if __name__ == "__main__":
         type=int,
         default=5005,
         help="The port to listen on")
-    parser.add_argument("-O", "--output",
-        default='./static/svg/output',
-        help="Location of compiled .ly")
+    parser.add_argument("-I", "--instrument",
+       default='tuba',
+       help="Location of compiled .ly")
+#    parser.add_argument("-O", "--output",
+#        default='tuba/svg/output',
+#        help="Location of compiled .ly")
     parser.add_argument("-I", "--include",
         default=[],
         nargs="+",
@@ -499,16 +480,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(args)
 
-    app.run(host="localhost", port=5000) #Flask
-
-## Flask ##
-app = Flask(__name__)
-@app.route("/tuba")
-def render_page():
-    #id_msg = request.args.get("id_msg", message)
-    return render_template('output.html', message = message)
-
-@app.route("/preview")
-def preview_page():
-    #name = request.args.get("name", "World")
-    return render_template('output_preview.html', message = message)
