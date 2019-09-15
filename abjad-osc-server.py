@@ -160,7 +160,7 @@ class LeafGenerator:
             voice = music[0]
             voice_direction[voice.name] = None
 
-        output_path = args.instrument+'svg/output'
+        output_path = args.instrument+'/svg/output'
         if preview == True:
             output_path = './preview/'+output_path
             colors = ['blue', 'darkblue', 'cyan', 'darkcyan']
@@ -174,7 +174,7 @@ class LeafGenerator:
             id_markup = Markup('ID: ' + id, direction = Up).box().with_color(SchemeColor('purple'))
             attach(id_markup, select(music).leaves()[0], tag='PREVIEW')
         else:
-            output_path = './'+args.output
+            output_path = './'+output_path
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
                     wrapper = inspect(leaf).wrappers(Markup)
@@ -467,7 +467,7 @@ if __name__ == "__main__":
         type=int,
         default=5005,
         help="The port to listen on")
-    parser.add_argument("-I", "--instrument",
+    parser.add_argument("-N", "--instrument",
        default='tuba',
        help="Location of compiled .ly")
 #    parser.add_argument("-O", "--output",

@@ -29,6 +29,9 @@
 )
 )
 '\\!'
+~a0.render; // ./httpwatcherapp.py -I 'tuba' -P 5556 -W 'tuba'
+~a0.preview; //  ./httpwatcherapp.py -I 'preview/tuba' -P 5557 -W 'preview/tuba'
+
 ~a0.preview;
 ~a0.render;
 ~a0.dynamic('niente', 5, 'backlash-!').dynamicTrend(shape: '>o', index: 0,  left_broken: 'True');
