@@ -23,7 +23,7 @@ from flask import Flask, render_template, request, escape
 DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
 
 notes = {} #store {'id' : [generated leaves]} //refactor cuando tenga claro que hacer con los containers Voice -> Measure -> Staff
-
+counter = 0
 message = "Test message";
 
 clef = Clef('bass')
@@ -150,6 +150,7 @@ class LeafGenerator:
         attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
 
     def display(self, id, preview):
+        global counter
         music = LeafGenerator.container[self.id]
         voice_direction = {}
         if len(music) > 1:
@@ -164,7 +165,6 @@ class LeafGenerator:
         else:
             voice = music[0]
             voice_direction[voice.name] = None
-
 
         output_path = args.output
         if preview == True:
@@ -203,13 +203,33 @@ class LeafGenerator:
                '-dbackend=svg',
                '-o' + output_path,
                ly_path]
-        subprocess.run(cmd)
+        #subprocess.run(cmd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, error = p.communicate()
+        return_code = p.poll()
+        refresh(return_code, preview)
 
     def clear(id):
         if id in LeafGenerator.container:
             del LeafGenerator.container[id]
         if id in LeafGenerator.voices:
             del LeafGenerator.voices[id]
+
+## Refresh html ##
+
+def refresh(return_code, preview):
+    if return_code == 0:
+        print(return_code)
+        print(preview)
+        if preview:
+            print("Refreshing output_preview.html")
+            #call function here
+        else:
+            print("Refreshing output.html")
+            #call function here
+    else:
+        print(return_code)
+        print("Error rendering Lilypond")
 
 ## Handlers ##
 ### Leaves ###
@@ -453,12 +473,12 @@ def main(args):
 
     #Start OSCServer in extra thread
     server = osc_server.ThreadingOSCUDPServer((args.host, args.port), dispatcher)
-    st = threading.Thread( target = server.serve_forever() )
-    st.daemon = True
-    st.start()
-    print('OSC server is started')
+    #st = threading.Thread( target = server.serve_forever() )
+    #st.daemon = True
+    #st.start()
+    #print('OSC server is started')
     print("Serving on {}".format(server.server_address))
-    #server.serve_forever()
+    server.serve_forever()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -478,7 +498,7 @@ if __name__ == "__main__":
         help="Include Lilypond file")
     args = parser.parse_args()
     main(args)
-    print("TESTING")
+
     app.run(host="localhost", port=5000) #Flask
 
 ## Flask ##
