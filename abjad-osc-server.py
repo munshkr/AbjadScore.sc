@@ -474,17 +474,17 @@ if __name__ == "__main__":
         help="Include Lilypond file")
     args = parser.parse_args()
     main(args)
-
-    app.run(host="localhost", port=5005) #Flask
+    print("TESTING")
+    app.run(host="localhost", port=5000) #Flask
 
 ## Flask ##
 app = Flask(__name__)
 @app.route("/tuba")
-def html_render():
-    #name = request.args.get("name", "World")
+def render_page():
+    #id_msg = request.args.get("id_msg", message)
     return render_template('output.html', message = message)
 
 @app.route("/preview")
-def html_preview():
+def preview_page():
     #name = request.args.get("name", "World")
     return render_template('output_preview.html', message = message)
