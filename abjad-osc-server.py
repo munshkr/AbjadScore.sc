@@ -451,10 +451,14 @@ def main(args):
     dispatcher.map("/note_event", note_handler, "Note")
     dispatcher.map("/display", display_handler, "Display")
 
+    #Start OSCServer in extra thread
     server = osc_server.ThreadingOSCUDPServer((args.host, args.port), dispatcher)
-
+    st = threading.Thread( target = server.serve_forever() )
+    st.daemon = True
+    st.start()
+    print('OSC server is started')
     print("Serving on {}".format(server.server_address))
-    server.serve_forever()
+    #server.serve_forever()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
