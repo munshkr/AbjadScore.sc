@@ -41,7 +41,7 @@ class LeafGenerator:
 
         if self.id not in self.container.keys():
             #self.container[self.id] = Measure()
-            self.container[self.id] = Staff()
+            self.container[self.id] = Staff(name=self.id)
 
 #Voice(components=None, lilypond_type='Voice', is_simultaneous=None, name=None)
         #print(self.voice)
@@ -243,7 +243,7 @@ def literal_handler(unused_addr, args, eventData):
     event['literal'] = event['literal'].replace("backlash-", "\\") #hack horrible
     id = event['id']
     voices = event['voice']
-    print(voices)
+    #print(voices)
     index = event['index']
     literal = LilyPondLiteral(
             event['literal'],
@@ -263,6 +263,9 @@ def dynamic_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     #print(event)
     id = event['id']
+    voices = event['voice']
+    index = event['index']
+
     if event['command'] == 'None':
         event['command'] = None
     else:
@@ -274,37 +277,34 @@ def dynamic_handler(unused_addr, args, eventData):
             name_is_textual=event['name_is_textual'],
             tweaks=event['tweaks']
             )
-    detach( DynamicTrend,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
-    detach( Dynamic,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
-    attach( dynamic,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
+    for voice in voices:
+        detach(DynamicTrend, LeafGenerator.container[id][voice][index])
+        detach(Dynamic, LeafGenerator.container[id][voice][index])
+        attach(dynamic, LeafGenerator.container[id][voice][index])
 
 def dynamicTrend_handler(unused_addr, args, eventData):
     # shape='<', *, left_broken=None, tweaks=None
     event = eval("{ " + eventData + "}")
     id = event['id']
+    voices = event['voice']
+    index = event['index']
+
     dynamicTrend = DynamicTrend(
             shape=event['shape'],
             left_broken=event['left_broken'],
             tweaks=event['tweaks']
             )
     #DynamicTrend convive con Dynamic en el mismo leaf, pero puede eliminarlo on 'left_broken'
-    detach( DynamicTrend,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
-    attach( dynamicTrend,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
+    for voice in voices:
+        detach(DynamicTrend, LeafGenerator.container[id][voice][index])
+        attach(dynamicTrend, LeafGenerator.container[id][voice][index])
 
 def markup_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     event['markup'] = event['markup'].replace("backlash-", "\\") #hack horrible
     id = event['id']
+    voices = event['voice']
+    index = event['index']
     markup = Markup(
             event['markup'],
             direction=event['direction'],
@@ -319,58 +319,76 @@ def markup_handler(unused_addr, args, eventData):
     except AttributeError:
         #print("Event has no markup format attribute")
         None
-
-    attach( markup,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
+    for voice in voices:
+        attach(markup,LeafGenerator.container[id][voice][index])
 
 def articulation_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     event['articulation'] = event['articulation'].replace("backlash-", "\\") #hack horrible
     id = event['id']
+    voices = event['voice']
+    index = event['index']
+
     articulation = Articulation(
             event['articulation'],
             direction=event['direction'],
             tweaks=event['tweaks']
             )
-
-    attach( articulation,
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
+    for voice in voices:
+        attach(articulation,LeafGenerator.container[id][voice][index])
 
 def bar_line_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     event['bar_line'] = event['bar_line'].replace("backlash-", "\\") #hack horrible
     id = event['id']
+    index = event['index']
+    voices = event['voice']
     bar_line = BarLine(event['bar_line'])
-    detach( BarLine, select(notes[id].container[id]).leaves()[event['index']])
-    attach( bar_line, select(notes[id].container[id]).leaves()[event['index']])
+    for voice in voices:
+        detach(BarLine, LeafGenerator.container[id][voice][index])
+        attach(bar_line, LeafGenerator.container[id][voice][index])
+
+def repeat_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    index = event['index'] #why?
+    container = event['container'] #is this really necessary?
+    print(container)
+    repeat = Repeat()
+    attach(repeat, LeafGenerator.container[id][container])
 
 def notehead_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
-    leaf = select(notes[id].container[id]).leaves()[event['index']]
-    if event['notehead'] == 'transparent':
-        override(leaf).note_head.transparent = True
-    else:
-        override(leaf).note_head.style = event['notehead']
+    voices = event['voice']
+    index = event['index']
+    notehead = event['notehead']
+    for voice in voices:
+        leaf = LeafGenerator.container[id][voice][index]
+        if notehead != 'default':
+            if notehead == 'transparent':
+                override(leaf).note_head.transparent = True
+            else:
+                override(leaf).note_head.style = event['notehead']
 
 ### Spanners ###
 def slur_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
+    voices = event['voice']
     slur = Slur(direction = event['direction'])
-    selection = select(notes[id].container[id]).leaves() #selecciona leaves de Measure. Como hago para seleccionar leaves del Voice dentro de ese Measure?
-    default_slice = [0, len(selection), 1]
     slice_params = event['slice']
-    for i in range(len(default_slice)):
-        try:
-            slice_params[i]
-        except IndexError:
-            slice_params.append(default_slice[i])
-    slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
-    detach(Slur, selection[slice_obj])
-    attach(slur, selection[slice_obj])
+    for voice in voices:
+        selection = LeafGenerator.container[id][voice]
+        default_slice = [0, len(selection), 1]
+        for i in range(len(default_slice)):
+            try:
+                slice_params[i]
+            except IndexError:
+                slice_params.append(default_slice[i])
+        slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
+        detach(Slur, selection[slice_obj])
+        attach(slur, selection[slice_obj])
 
 def tie_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -427,6 +445,30 @@ def text_spanner_handler(unused_addr, args, eventData):
     #text_spanner(selection[slice_obj], start_text_span=start_text_span)
     override(selection[slice_params[0]]).text_spanner.staff_padding = event['staff_padding'] # -dcrop svg de lilypond no tiene en cuenta este override!
     text_spanner(selection[slice_obj], start_text_span=start_text_span, stop_text_span = None)
+#Glissando(*, allow_repeats=None, allow_ties=None, parenthesize_repeats=None, right_broken=None, stems=None, style=None)
+def glissando_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    voices = event['voice']
+    allow_repeats = event['allow_repeats']
+    allow_ties = event['allow_ties']
+    parenthesize_repeats =event['parenthesize_repeats']
+    right_broken = event['right_broken']
+    stems = event['stems']
+    style = event['style']
+    gliss = Glissando(allow_repeats=allow_repeats, allow_ties=allow_ties, parenthesize_repeats=parenthesize_repeats, right_broken=right_broken, stems=stems, style=style)
+    slice_params = event['slice']
+    for voice in voices:
+        selection = LeafGenerator.container[id][voice]
+        default_slice = [0, len(selection), 1]
+        for i in range(len(default_slice)):
+            try:
+                slice_params[i]
+            except IndexError:
+                slice_params.append(default_slice[i])
+        slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
+        detach(Glissando, selection[slice_obj])
+        attach(gliss, selection[slice_obj])
 
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
@@ -485,10 +527,12 @@ def main(args):
     dispatcher.map("/detach", detach_handler, "Detach")
     dispatcher.map("/detach_literal", detach_literal_handler, "Detach literal")
     dispatcher.map("/slur_oneshot", slur_handler, "Slur")
+    dispatcher.map("/glissando_oneshot", glissando_handler, "Glissando")
     dispatcher.map("/tie_oneshot", tie_handler, "Tie")
     dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
     dispatcher.map("/notehead_oneshot", notehead_handler, "Notehead")
     dispatcher.map("/bar_line_oneshot", bar_line_handler, "BarLine")
+    dispatcher.map("/repeat_oneshot", repeat_handler, "Repeat")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")
     dispatcher.map("/dynamicTrend_oneshot", dynamicTrend_handler, "DynamicTrend")
