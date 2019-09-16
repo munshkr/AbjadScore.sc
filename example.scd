@@ -1,32 +1,30 @@
 ~score = AbjadScore.new;
 //~score = AbjadScore.new("127.0.0.1", 5005);
-
 (
 ~a0 = ~score.notes(\multiphonics,
 	Ptpar([
 		0,
 		Pbind(
 			\voice, 'lower',
-			\dur, Pseq([1/4], 8),
+			\dur, Pseq([1/8], 4),
 			\notehead, \default,
 			\octave, 3,
 			\root, 1,
-			\degree, Pseries(5, -1),
-			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+			\degree, Pwhite(0, 1),
+			\ctranspose, Prand([-0.5, 0, 0.5], inf)
 		).collect(~event = _),
-		0.0001,
+		0.001,
 		Pbind(
 			\voice, 'upper',
-			\dur, Pseq([1/4], 8),
+			\dur, Pseq([1/8], 4),
 			\notehead, \harmonic,
 			\octave, 3,
 			\root, Pfunc({~event[\root]}),
 			\degree, Pfunc({~event[\degree]}),
-			\ctranspose, 7,
-			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+			\ctranspose, 7 + Pfunc({~event[\ctranspose]}),
 		)
 	])
-)
+).render
 )
 '\\!'
 ~a0.render; // ./httpwatcherapp.py -I 'tuba' -P 5556 -W 'tuba'
@@ -34,31 +32,40 @@
 
 ~a0.preview;
 ~a0.render;
-~a0.dynamic('niente', 5, 'backlash-!').dynamicTrend(shape: '>o', index: 0,  left_broken: 'True');
-~a0.dynamic('niente', 0, 'backlash-!').dynamicTrend(shape: 'o<|', index: 0,  left_broken: 'True');
+~a0.dynamic('niente', -1, '\\!').dynamicTrend(shape: '|>o', index: -2,  left_broken: 'False');
+~a0.dynamic('niente', 0, '\\!').dynamic('mf', 2, voice: \lower).dynamicTrend(shape: 'o<|', index: 0,  left_broken: 'True');
+
+(10..15).do({|i| ~a0.articulation('.', i, 'Up', [\upper, \lower])})
 
 ~a0.textSpanner([0, 5], "air", "tone", 'upright', 'dashed_line_with_arrow', staff_padding: 3);
 
-~a0.detach('Dynamic', 8)
+~a0.dynamic('mf', 5)
+~a0.detach('Dynamic', 0)
 ~a0.detach('text_spanner', 0)
-~a0.remove(0, 'lower')
+~a0.remove(0, [\upper, \lower]).preview
 
-~a0.literal('backlash-addlyrics { O E}', \after, 0)
+~a0.literal("\\addlyrics { _ _ O E}", \after, voice:  [\lower, \upper]) //no index for Lyrics
+~a0.literal("\\addlyrics { _ _ _ _ _ _ O E}", \after, voice: \lower)
+~a0.detach_literal("\\addlyrics { _ _ O E}", 0, voice: [\lower, \upper]) //NO FUNCIONA
+~a0.detach_literal("LilypondLiteral('\\addlyrics { _ _ O E}', 'after')", 0, [\lower, \upper]) //NO FUNCIONA
+~a0.preview;
+~a0.detach_literal("LilypondLiteral", 0, voice: [\lower, \upper]) //NO FUNCIONA
 
+[\upper].class
 ~a0.dynamic('mp', 8)
 
 
 (
 ~a1 = ~score.notes(\melody,
 	Pbind(
-			\voice, 'lower',
-			\dur, Pseq([1/4], 20),
-			\notehead, \default,
-			\octave, 3,
-			\root, 1,
-			\degree, Pseries(5, 1),
-			//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
-		)
+		\voice, 'lower',
+		\dur, Pseq([1/4], 20),
+		\notehead, \default,
+		\octave, 3,
+		\root, 1,
+		\degree, Pseries(5, 1),
+		//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+	)
 )
 )
 
@@ -66,3 +73,38 @@
 ~a1.preview
 ~a1.dynamic('mp', -1)
 ~a1.detach('Dynamic', -1)
+
+
+
+
+
+////Test all stuff
+(
+~a2 = ~score.notes(\testAll,
+	Pbind(
+		\voice, Prand([\upper, \lower], inf),
+		\dynamicDirection, \Up, //no se envía como string porque hace referencia a un atributo. abjad.Up / abjad.Down
+		//\amp, 0,
+		\amp, Pseries(0.001, 0.1, inf),
+		\dur, Pseries(16, -1, 16)/16,
+		//\dur, Pseq([Pn(1/12,6),1/4,Pn(1/6, 3),1/4, Pn(1/16, 4) ], repeats: 1),
+		//\dur, Pseq([Pn(1/12, 6), Pn(1/10, 5), 1/3, 2/3, Pn(1/8, 4) ], repeats: 1),
+		\octave, 4,
+		\root, 3,
+		\markupCommand, "italic",
+		\markup, "Allegro", //?
+		\mtranspose, Pxrand([-2,2,0], inf),
+		\scale, Scale.major,
+		\degree, Pseries(0, 1, inf),
+		\articulation, Pseq(['.', "", "", "", 'accent'], inf),
+		\articDirection, \Down,
+		\fermata, Pseq(["", "", "", "", "", 'fermata'], inf),
+		\notehead, Prand(['altdefault','baroque','mensural','neomensural', 'petrucci','harmonic','harmonic-black', 'harmonic-mixed', 'diamond', 'cross', 'xcircle', 'triangle', 'slash', 'do','re','mi','fa','la','ti'], inf)
+	)
+).preview;
+)
+~a2.preview;
+~a2.detach('Dynamic', 0, \lower)
+~a2.remove(0, [\upper, \lower])
+
+~a2.markup('Allegro', index: 0)

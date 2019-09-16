@@ -17,6 +17,10 @@ import argparse
 from pythonosc.dispatcher import Dispatcher
 from pythonosc import osc_server
 import os
+import shutil
+
+def copy(src, dest):
+    shutil.copy(src, dest)
 
 DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 'styles', 'default.ily')]
 
@@ -27,7 +31,7 @@ clef = Clef('bass')
 
 class LeafGenerator:
     container = {}
-    voices = {}
+    voices = {} # redundant... Staff[voice.name] retrieves Voice
     #voices = { 'id1000' : {'upper' : Voice() ,'lower' : Voice()}, 'id1001' : {'upper' : Voice()} }
     includes = []
 
@@ -166,6 +170,14 @@ class LeafGenerator:
             colors = ['blue', 'darkblue', 'cyan', 'darkcyan']
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
+                    wrapper = inspect(leaf).wrappers(Markup)
+                    try:
+                        tag = wrapper[0].tag
+                        if tag == Tag('PREVIEW'):
+                            detach(Markup, leaf)
+                    except:
+                        None
+
                     number = str(voice_num) + '-' + str(leaf_num)
                     markup = Markup(number, direction = voice_direction[voice.name]).tiny().with_color(colors[voice_num])
                     attach(markup, leaf, tag='PREVIEW')
@@ -175,6 +187,7 @@ class LeafGenerator:
             attach(id_markup, select(music).leaves()[0], tag='PREVIEW')
         else:
             output_path = './'+output_path
+            copy(output_path+'.cropped.svg', output_path+'.cropped_prev.svg')
             for voice_num, voice in enumerate(music):
                 for leaf_num, leaf in enumerate(voice):
                     wrapper = inspect(leaf).wrappers(Markup)
@@ -229,6 +242,8 @@ def literal_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}") #eval elimina la posibilidad de "\\" para imprimir "\"?
     event['literal'] = event['literal'].replace("backlash-", "\\") #hack horrible
     id = event['id']
+    voices = event['voice']
+    print(voices)
     index = event['index']
     literal = LilyPondLiteral(
             event['literal'],
@@ -236,9 +251,11 @@ def literal_handler(unused_addr, args, eventData):
             tweaks=event['tweaks']
             )
     if index is None:
-        attach(literal, notes[id].container[id])
+        for voice in voices:
+            attach(literal, LeafGenerator.container[id][voice])
     else:
-        attach(literal, notes[id].container[id][index])
+        for voice in voices:
+            attach(literal, LeafGenerator.container[id][voice][index])
 
 ### Indicators ###
 def dynamic_handler(unused_addr, args, eventData):
@@ -415,16 +432,46 @@ def text_spanner_handler(unused_addr, args, eventData):
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
-    detach( event['attachment'],
-            select(notes[id].container[id]).leaves()[event['index']]
-            )
+    index = event['index']
+    voices = event['voice']
+    attachment = event['attachment']
+    for voice in voices:
+        detach(attachment, LeafGenerator.container[id][voice][index])
 
+def detach_literal_handler(unused_addr, args, eventData):
+    print("TO DO")
+    """
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    index = event['index']
+    voices = event['voice']
+    attachment = event['attachment']
+    attachment = attachment.replace("backlash-", "\\") #hack horrible
+    if voices == ['None']:
+        if index is None:
+            for voice in voices:
+                detach(attachment, LeafGenerator.container[id])
+        else:
+            detach(attachment, LeafGenerator.container[id][index])
+    else:
+        if index is None:
+            for voice in voices:
+                detach(attachment, LeafGenerator.container[id][voice])
+        else:
+            for voice in voices:
+                detach(attachment, LeafGenerator.container[id][voice][index])
+    """
 def remove_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
-    voice_name = event['voice']
-    voice = notes[id].container[id][voice_name] 
-    voice.remove(voice[event['index']])
+    index = event['index']
+    voices = event['voice']
+    for voice in voices:
+        voice = LeafGenerator.container[id][voice]
+        if (len(voice) > 1):
+            voice.remove(voice[index])
+        else:
+            print("Cannot remove last item in "+voice.name)
 
 ### Display ###
 def display_handler(unused_addr, args, id, preview):
@@ -436,6 +483,7 @@ def main(args):
     dispatcher = Dispatcher()
     dispatcher.map("/remove", remove_handler, "Remove")
     dispatcher.map("/detach", detach_handler, "Detach")
+    dispatcher.map("/detach_literal", detach_literal_handler, "Detach literal")
     dispatcher.map("/slur_oneshot", slur_handler, "Slur")
     dispatcher.map("/tie_oneshot", tie_handler, "Tie")
     dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
