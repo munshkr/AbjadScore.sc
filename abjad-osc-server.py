@@ -27,8 +27,6 @@ DEFAULT_INCLUDES = [os.path.join(os.path.dirname(os.path.realpath(__file__)), 's
 notes = {} #store {'id' : [generated leaves]} //refactor cuando tenga claro que hacer con los containers Voice -> Measure -> Staff
 #message = "Test message";
 
-clef = Clef('bass')
-
 class LeafGenerator:
     container = {}
     voices = {} # redundant... Staff[voice.name] retrieves Voice
@@ -140,14 +138,14 @@ class LeafGenerator:
                 None
                 #print("Note has no Notehead attribute")
 
-
-
         #self.container[self.id].automatically_adjust_time_signature = True #Ajusta el Measure a la métrica de compás
-
+        #Esta funcion podria append directo a self.container[self.id]
         self.add_leaf_to_voice(leaves, self.voices[self.id][self.voice])
         #self.voices[self.id][self.voice].append(leaves) #Agregar las notas al Voice
+        #Entonces paso se podria abreviar
         self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Container
-        attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
+        #attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
+        attach(TimeSignature((2,4), hide=True), select(self.container[self.id]).leaves()[0]) #agrega TimeSignature oculta por default
     def display(self, id, preview):
         music = LeafGenerator.container[self.id]
         voice_direction = {}
@@ -445,7 +443,7 @@ def text_spanner_handler(unused_addr, args, eventData):
     #text_spanner(selection[slice_obj], start_text_span=start_text_span)
     override(selection[slice_params[0]]).text_spanner.staff_padding = event['staff_padding'] # -dcrop svg de lilypond no tiene en cuenta este override!
     text_spanner(selection[slice_obj], start_text_span=start_text_span, stop_text_span = None)
-#Glissando(*, allow_repeats=None, allow_ties=None, parenthesize_repeats=None, right_broken=None, stems=None, style=None)
+
 def glissando_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
     id = event['id']
@@ -469,6 +467,29 @@ def glissando_handler(unused_addr, args, eventData):
         slice_obj = slice(slice_params[0],slice_params[1],slice_params[2]) #reescribir mas pythonico
         detach(Glissando, selection[slice_obj])
         attach(gliss, selection[slice_obj])
+
+def clef_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    index = event['index']
+    voices = event['voice']
+    clef = Clef(event['clef'])
+    for voice in voices:
+        detach(Clef, LeafGenerator.container[id][voice][index])
+        attach(clef, LeafGenerator.container[id][voice][index])
+
+def time_signature_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    index = event['index']
+    voices = event['voice']
+    pair = tuple(event['pair'])
+    partial = event['partial']
+    hide = event['hide']
+    time_signature = TimeSignature(pair, partial=partial, hide=hide)
+    for voice in voices:
+        detach(TimeSignature, LeafGenerator.container[id][voice][index])
+        attach(time_signature, LeafGenerator.container[id][voice][index])
 
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
@@ -532,6 +553,8 @@ def main(args):
     dispatcher.map("/text_spanner_oneshot", text_spanner_handler, "Text Spanner")
     dispatcher.map("/notehead_oneshot", notehead_handler, "Notehead")
     dispatcher.map("/bar_line_oneshot", bar_line_handler, "BarLine")
+    dispatcher.map("/clef_oneshot", clef_handler, "Clef")
+    dispatcher.map("/time_signature_oneshot", time_signature_handler, "Time Signature")
     dispatcher.map("/repeat_oneshot", repeat_handler, "Repeat")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")

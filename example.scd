@@ -37,6 +37,15 @@
 ~a0.render; // ./httpwatcherapp.py -I 'tuba' -P 5556 -W 'tuba'
 ~a0.preview; //  ./httpwatcherapp.py -I 'preview/tuba' -P 5557 -W 'preview/tuba'
 
+~a0.clef(\bass, 0).preview
+~a0.clef(\baritone, 1).preview
+~a0.clef(\alto, 2).preview
+~a0.clef(\soprano, 3).preview
+~a0.clef(\treble, 3).preview
+~a0.timeSignature([2,4], 0, hide: "False").preview
+~a0.remove(0, [\upper, \lower]).preview
+~a0.clef(\bass, 0).preview
+
 ~a0.slur(direction: \Up).preview
 ~a0.slur([], \upper, \Up).preview
 ~a0.detach('Slur', 0, \upper).preview
@@ -52,8 +61,8 @@
 ~a0.preview;
 ~a0.render;
 ~a0.dynamic('niente', -1, '\\!').dynamicTrend(shape: '|>o', index: -3,  left_broken: 'False').preview;
-~a0.dynamic('niente', 0, '\\!', voice: \lower).dynamic('mf', 2, voice: \lower).dynamicTrend(shape: 'o<|', index: 0,  left_broken: 'True', voice: \lower).preview;
-~a0.detach('Dynamic', 5, \lower).preview
+~a0.dynamic('niente', 0, '\\!', voice: \lower).dynamic('mf', 5, voice: \lower).dynamicTrend(shape: 'o<|', index: 0,  left_broken: 'True', voice: \lower).preview;
+~a0.detach('dynamic_trend', 1, \lower).preview
 
 
 (0..8).do({|i| ~a0.articulation(['>', '-'].choose, i, 'Down', \lower)})
