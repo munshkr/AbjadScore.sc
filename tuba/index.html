@@ -14,6 +14,11 @@ p {
   background: #fff;
   margin: 0 auto;
 }
+
+div .wrapper {
+  height: 100%
+}
+
 object {
   width: 100%;
 }
@@ -112,10 +117,10 @@ object {
 </style>
 </head>
 <body>
-
+<div class="wrapper">
 <object class="hidden" id="current" type='image/svg+xml' data="svg/output.cropped.svg"> Actual score </object>
 <object class="visible active" id="prev" type='image/svg+xml' data="svg/output.cropped_prev.svg"> Previous score </object>
-
+</div>
 <p id="txt"></p>
 
 <script>
@@ -167,8 +172,8 @@ function stopCount() {
   changeBackground('white', 'current');
  
   document.getElementById("prev").classList.add('slide-bottom');
-//  document.getElementById("prev").classList.remove('visible');
-//  document.getElementById("prev").classList.add('hidden');
+  document.getElementById("prev").classList.remove('visible');
+  document.getElementById("prev").classList.add('hidden');
 
   document.getElementById("current").classList.add('slide-bottom');
   document.getElementById("current").classList.add('active');
@@ -179,6 +184,36 @@ function stopCount() {
 
 startCount();
 
+//FullScreen
+
+/* Get the documentElement (<html>) to display the page in fullscreen */
+var elem = document.documentElement;
+
+/* View in fullscreen */
+function openFullscreen() {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) { /* Firefox */
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
+}
 </script>
 </body>
 </html>
