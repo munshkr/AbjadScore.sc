@@ -145,7 +145,7 @@ class LeafGenerator:
         #Entonces paso se podria abreviar
         self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Container
         #attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
-        attach(TimeSignature((2,4), hide=True), select(self.container[self.id]).leaves()[0]) #agrega TimeSignature oculta por default
+        #attach(TimeSignature((2,4), hide=True), select(self.container[self.id]).leaves()[0]) #agrega TimeSignature oculta por default
     def display(self, id, preview):
         music = LeafGenerator.container[self.id]
         voice_direction = {}

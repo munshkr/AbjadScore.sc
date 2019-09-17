@@ -41,8 +41,10 @@
 ~a0.clef(\baritone, 1).preview
 ~a0.clef(\alto, 2).preview
 ~a0.clef(\soprano, 3).preview
-~a0.clef(\treble, 3).preview
-~a0.timeSignature([2,4], 0, hide: "False").preview
+~a0.clef(\treble, 3, \lower).preview
+~a0.detach('Clef', 3, \lower).preview
+
+~a0.timeSignature([3,4], 0, hide: \False).preview
 ~a0.remove(0, [\upper, \lower]).preview
 ~a0.clef(\bass, 0).preview
 
@@ -80,7 +82,7 @@
 ~a0.detach('text_spanner', 0)
 ~a0.remove(-1, [\upper, \lower]).preview
 
-~a0.notehead('harmonic', 5, [\upper, \lower]).preview
+16.do({|i| ~a0.notehead('harmonic', i, \upper).preview})
 ~a0.repeat.preview
 ~a0.barline(':|.', -1).preview
 ~a0.barline(':|.|:', 1).preview
@@ -95,6 +97,8 @@
 
 //~a0.detach_literal('\\new Lyrics \\with { alignAboveContext = ' ++ '"' ++ \multiphonics ++ '"' ++ ' } { \\lyricsto ' ++ '"' ++ \upper ++ '"' ++ ' { O - - E O _ O E O }}', voice: 'upper').preview //TO DO
 
+
+~a0.literal("\\once \\override Staff.TimeSignature #'stencil = ##f", \before, voice: \upper).preview //DELETE TIME SIGNATURE
 
 ~a0.literal("\\addlyrics { _ _ _ _ _ _ O E}", \after, voice: \lower)
 ~a0.detach_literal("\\addlyrics { _ _ O E}", 0, voice: [\lower, \upper]) //NO FUNCIONA
@@ -111,12 +115,12 @@
 (
 ~a1 = ~score.notes(\melody,
 	Pbind(
-		\voice, 'lower',
-		\dur, Pseq([1/4], 20),
+		\voice, 'upper',
+		\dur, Pwhite(1/64, 1, 16),
 		\notehead, \default,
 		\octave, 3,
 		\root, 1,
-		\degree, Pseries(5, 1),
+		\degree, Pseries(5, 0),
 		//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
 	)
 )
@@ -128,6 +132,38 @@
 ~a1.detach('Dynamic', -1)
 
 
+(
+~a5 = ~score.notes(\dots,
+	Pbind(
+		\voice, \upper,
+		\dur, Prand([1/16, Rest(1/16)], 16),
+		\notehead, Prand([\la, \cross], inf),
+		\octave, 3,
+		\root, 2,
+		\scale, Scale.major,
+		\degree, Pwhite(0, 14),
+		\articulation, Prand(['.', '>'], inf),
+		\articDirection, \None
+		/*
+		\articulation, Pfunc({|e|
+			if (e.isRest.not,
+				{[".", ">"].choose}
+			)
+		})
+		*/
+		//\ctranspose, Prand([-0.5, 0 , 0.5], inf)
+	)
+)
+)
+~a5.clef(\bass).preview
+~a5.render
+~a5.preview
+
+
+~a5.dynamic('mp', -1)
+~a5.detach('Dynamic', -1)
+
+().isRest.not
 
 
 
