@@ -1,6 +1,7 @@
 # AbjadScore.sc
 
-Render Abjad scores (Lylipond) using SuperCollider Patterns.
+**(work in progress)** Render Abjad scores (Lylipond) using SuperCollider
+Patterns.
 
 ## Requirements
 
