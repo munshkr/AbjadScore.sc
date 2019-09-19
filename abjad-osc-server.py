@@ -113,15 +113,14 @@ class LeafGenerator:
                 #print("Note has no Fermata attribute")
 
             try:
-                markup = Markup(
-                        self.markup,
-                        direction=self.markupDirection)
-                if len(self.markupCommand) > 0:
-                    for command in self.markupCommand:
-                        string = "markup."+command+"()"
-                        markup = eval(string)
-                for leaf in abjad.iterate(leaves).leaves():
-                    attach(markup, leaf)
+                if len(self.markup) > 0:
+                    markup = Markup(self.markup, direction=self.markupDirection)
+                    if len(self.markupCommand) > 0:
+                        for command in self.markupCommand:
+                            string = "markup."+command+"()"
+                            markup = eval(string)
+                    for leaf in abjad.iterate(leaves).leaves():
+                        attach(markup, leaf)
             except AttributeError:
                 #print("Note has no Markup attribute")
                 None
@@ -146,6 +145,7 @@ class LeafGenerator:
         self.container[self.id].append(self.voices[self.id][self.voice]) #Agregar el Voice al Container
         #attach(clef, select(self.container[self.id]).leaves()[0]) #Agrega el Clef al Measure
         #attach(TimeSignature((2,4), hide=True), select(self.container[self.id]).leaves()[0]) #agrega TimeSignature oculta por default
+
     def display(self, id, preview):
         music = LeafGenerator.container[self.id]
         voice_direction = {}
@@ -303,6 +303,9 @@ def markup_handler(unused_addr, args, eventData):
     id = event['id']
     voices = event['voice']
     index = event['index']
+    commands = event['markupCommand']
+    #print(isinstance(commands, list))
+    #print(commands)
     markup = Markup(
             event['markup'],
             direction=event['direction'],
@@ -310,15 +313,16 @@ def markup_handler(unused_addr, args, eventData):
             )
     #To-Do: handler para MarkupCommand que acepta argumentos
     try:
-        if len(event['markupCommand']) > 0:
-            for command in event['markupCommand']:
+        if len(commands) > 0:
+            for command in commands:
                 string = "markup."+command+"()"
                 markup = eval(string)
     except AttributeError:
         #print("Event has no markup format attribute")
         None
-    for voice in voices:
-        attach(markup,LeafGenerator.container[id][voice][index])
+    if len(event['markup']) > 0:
+        for voice in voices:
+            attach(markup,LeafGenerator.container[id][voice][index])
 
 def articulation_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -333,7 +337,7 @@ def articulation_handler(unused_addr, args, eventData):
             tweaks=event['tweaks']
             )
     for voice in voices:
-        attach(articulation,LeafGenerator.container[id][voice][index])
+        attach(articulation, LeafGenerator.container[id][voice][index])
 
 def bar_line_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -491,6 +495,12 @@ def time_signature_handler(unused_addr, args, eventData):
         detach(TimeSignature, LeafGenerator.container[id][voice][index])
         attach(time_signature, LeafGenerator.container[id][voice][index])
 
+def staff_handler(unused_addr, args, eventData):
+    event = eval("{ " + eventData + "}")
+    id = event['id']
+    lilypond_type = event['lilypond_type']
+    LeafGenerator.container[id].lilypond_type = lilypond_type
+
 ### Removing items ###
 def detach_handler(unused_addr, args, eventData):
     event = eval("{ " + eventData + "}")
@@ -555,6 +565,7 @@ def main(args):
     dispatcher.map("/bar_line_oneshot", bar_line_handler, "BarLine")
     dispatcher.map("/clef_oneshot", clef_handler, "Clef")
     dispatcher.map("/time_signature_oneshot", time_signature_handler, "Time Signature")
+    dispatcher.map("/staff_oneshot", staff_handler, "Staff type")
     dispatcher.map("/repeat_oneshot", repeat_handler, "Repeat")
     dispatcher.map("/articulation_oneshot", articulation_handler, "Articulation")
     dispatcher.map("/dynamic_oneshot", dynamic_handler, "Dynamic")

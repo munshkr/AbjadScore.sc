@@ -12,11 +12,12 @@ AbjadPattern {
 	}
 
 	play {
-		//(patternBuilder <> (abjad: type, id: id, score: score) <> Pseq([(new: \True), pbind])).play;
-		Pseq([
+		(patternBuilder <> (abjad: type, id: id, score: score) <> Pseq([(new: \True), pbind])).play;
+	/*	Pseq([
 			(abjad: type, id: id, score: score, new: \True),
 			patternBuilder <> (abjad: type, id: id, score: score) <> pbind
 		]).play;
+	*/
 	}
 
 	render {
@@ -63,7 +64,7 @@ AbjadPattern {
 	//[ 'italic', 'caps', 'center_align', 'circle', 'bold', 'box', 'bracket', 'huge', 'larger', 'normal_text', 'parenthesize', 'sans', 'small', 'smaller', 'tiny', 'upright', 'vcenter', 'whiteout' ]
 	//Advertencia: no son todos combinables. Ej. 'italic' mata 'caps'
 	// 'dynamic' choca con la tipografía de Dynamic() en lilypond (parece que si la usas en Dynamic() despues Markup('dynamic') no encuentra la tipografía)
-	markup { |markup, direction = 'Up', markupCommand="", index = 0, voice = \upper, tweaks = 'None'|
+	markup { |markup, direction = 'Up', markupCommand='upright', index = 0, voice = \upper, tweaks = 'None'|
 		var msg;
 		if (voice.class != Array, {voice = [voice]});
 		if (markupCommand.class != Array, {markupCommand = [markupCommand]});
@@ -129,6 +130,13 @@ AbjadPattern {
 		++ ", 'voice': " ++ voice.asCompileString
 		++ ", 'index': " ++ index;
 		score.prSendMsg('/time_signature_oneshot', msg);
+	}
+
+	staff { |type|
+		var msg;
+		msg = "'id': " ++ id.asCompileString
+		++ ", 'lilypond_type': " ++ type.asCompileString;
+		score.prSendMsg('/staff_oneshot', msg);
 	}
 
 	repeat { |container, index = 0|
@@ -292,17 +300,18 @@ AbjadPattern {
 							}
 						);
 
-						[\id, \articulation, \dynamic, \fermata, \markup, \voice, \octave, \notehead].do({|key| //send as String
+						[\id, \articulation, \dynamic, \fermata, \markup, \markupCommand, \voice, \octave, \notehead].do({|key| //send as String
 							selectedKeys[key] !? {
 								selectedKeys[key] = selectedKeys[key].asCompileString
 							}
 						});
-
+						/*
 					[\markupCommand].do({|key| //send as Array
 							selectedKeys[key] !? {
 							selectedKeys[key] = [selectedKeys[key]].asCompileString
 							}
 						});
+						*/
 					},
 
 					\literal, {
